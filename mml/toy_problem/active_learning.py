@@ -1,58 +1,19 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import os
-import random
-import torch
-import torch.nn.functional as F
 from utils.const import *
-from mlp import MLP
+from utils.ml import *
+from nn.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
-from toy_problem_data import make_data
-from vae import VAE, VAE_SSL
-
-def set_seed(seed):
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-
-def vae_loss(x_reconst, x, mu, logvar):
-    reconst_loss = F.mse_loss(x_reconst, x, reduction='sum')
-    kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return reconst_loss + kl_div
-
-def train(epoch, train_data, model, optimizer):
-    model.train()
-    loss_epoch = []
-    for x_batch, y_batch in train_data:
-        optimizer.zero_grad()
-        loss_batch = F.binary_cross_entropy(torch.sigmoid(model(x_batch)), y_batch)
-        loss_batch.backward()
-        loss_epoch.append(loss_batch.item())
-        optimizer.step()
-    print(f"Epoch={epoch} Loss={np.mean(loss_epoch):.6f}")
-
-def train_vae(epoch, train_data, model, optimizer, is_ssl):
-    model.train()
-    loss_epoch = []
-    for x_batch, y_batch in train_data:
-        optimizer.zero_grad()
-        x_reconst, mu, logvar = model(x_batch, y_batch) if is_ssl else model(x_batch)
-        loss_batch = vae_loss(x_reconst, x_batch, mu, logvar)
-        loss_batch.backward()
-        loss_epoch.append(loss_batch.item())
-        optimizer.step()
-    print(f"Epoch={epoch} Loss={np.mean(loss_epoch):.6f}")
+from data import make_data
+from nn.vae import VAE, VAE_SSL
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]
     ax.scatter(x[neg_idxs, 0], x[neg_idxs, 1], s=0.1, color="red")
     ax.scatter(x[pos_idxs, 0], x[pos_idxs, 1], s=0.1, color="blue")
 
-seed = 2
+seed = 0
 set_seed(seed)
 rng = np.random.RandomState(seed)
 
@@ -87,9 +48,9 @@ x_train, y_train = torch.tensor(x_train), torch.tensor(y_train)
 train_data = DataLoader(TensorDataset(x_train, y_train[:, None]), batch_size=batch_size, shuffle=True)
 
 for epoch in range(n_epochs):
-    train(epoch, train_data, mlp, optim_mlp)
-    train_vae(epoch, train_data, vae, optim_vae, False)
-    train_vae(epoch, train_data, vae_ssl, optim_vae_ssl, True)
+    train_epoch_vanilla(epoch, train_data, mlp, optim_mlp)
+    train_epoch_vae(epoch, train_data, vae, optim_vae, False)
+    train_epoch_vae(epoch, train_data, vae_ssl, optim_vae_ssl, True)
 torch.save(mlp.state_dict(), os.path.join("results", "mlp.pt"))
 torch.save(vae.state_dict(), os.path.join("results", "vae.pt"))
 torch.save(vae_ssl.state_dict(), os.path.join("results", "vae_ssl.pt"))
@@ -122,7 +83,7 @@ pseudo_y_train = torch.cat(pseudo_y_train)
 critic_data = DataLoader(TensorDataset(u_train, pseudo_y_train[:, None]), batch_size=batch_size, shuffle=True)
 
 for epoch in range(n_epochs):
-    train(epoch, critic_data, critic, optim_critic)
+    train_epoch_vanilla(epoch, critic_data, critic, optim_critic)
 torch.save(critic.state_dict(), os.path.join("results", "critic.pt"))
 
 # critic.load_state_dict(torch.load(os.path.join("results", "critic.pt")))
