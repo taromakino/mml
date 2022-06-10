@@ -1,8 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-
-plt.rcParams.update({'font.size': 14})
+from utils.plotting import *
 
 sigma = 0.9
 uy_prior = np.array([

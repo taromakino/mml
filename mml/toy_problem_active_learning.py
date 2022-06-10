@@ -4,14 +4,12 @@ import os
 import random
 import torch
 import torch.nn.functional as F
-from const import *
+from utils.const import *
 from mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from toy_problem_data import make_data
 from vae import VAE, VAE_SSL
-
-plt.rcParams.update({'font.size': 14})
 
 def set_seed(seed):
     torch.backends.cudnn.deterministic = True

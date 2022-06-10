@@ -1,11 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from const import *
+from utils.const import *
+from utils.plotting import *
 from scipy.special import softmax
 from scipy.stats import entropy, multivariate_normal as mvn
 from toy_problem_data import make_data
-
-plt.rcParams.update({'font.size': 14})
 
 def posterior_entropy(x_test, y_test, uy_prior_train, sigma):
     u_posterior = []
