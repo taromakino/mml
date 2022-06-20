@@ -6,7 +6,7 @@ from nn.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from toy_problem.data import make_data
-from nn.input_concat_vae import InputConcatVAE, InputConcatSSVAE
+from nn.two_scalar_vae import TwoScalarVAE, TwoScalarSSVAE
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]
@@ -25,17 +25,14 @@ uy_prior_train = np.array([
     [0.25, 0.25]])
 sigma = 0.9
 
-x0_dim = 1
-x1_dim = 1
-y_dim = 1
 hidden_dim = 128
 n_hidden = 3
 latent_dim = 128
 
-mlp = MLP(x0_dim, hidden_dim, n_hidden, y_dim)
-vae = InputConcatVAE(x0_dim, hidden_dim, n_hidden, latent_dim)
-ssvae = InputConcatSSVAE(x0_dim, y_dim, hidden_dim, n_hidden, latent_dim)
-critic = MLP(latent_dim, hidden_dim, n_hidden, y_dim)
+mlp = MLP(2, hidden_dim, n_hidden, 1)
+vae = TwoScalarVAE(hidden_dim, n_hidden, latent_dim)
+ssvae = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
+critic = MLP(latent_dim, hidden_dim, n_hidden, 1)
 
 optim_mlp = Adam(mlp.parameters())
 optim_vae = Adam(vae.parameters())

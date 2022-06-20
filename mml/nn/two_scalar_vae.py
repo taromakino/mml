@@ -2,15 +2,13 @@ import torch
 import torch.nn as nn
 from nn.mlp import MLP
 
-import inspect
-
-class InputConcatVAE(nn.Module):
-    def __init__(self, x0_dim, x1_dim, hidden_dim, n_hidden, latent_dim):
-        super(InputConcatVAE, self).__init__()
-        self.x_to_mu = MLP(x0_dim + x1_dim, hidden_dim, n_hidden, latent_dim)
-        self.x_to_logvar = MLP(x0_dim + x1_dim, hidden_dim, n_hidden, latent_dim)
-        self.x0_decoder = MLP(latent_dim, hidden_dim, n_hidden, x0_dim)
-        self.x1_decoder = MLP(latent_dim, hidden_dim, n_hidden, x1_dim)
+class TwoScalarVAE(nn.Module):
+    def __init__(self, hidden_dim, n_hidden, latent_dim):
+        super(TwoScalarVAE, self).__init__()
+        self.x_to_mu = MLP(2, hidden_dim, n_hidden, latent_dim)
+        self.x_to_logvar = MLP(2, hidden_dim, n_hidden, latent_dim)
+        self.x0_decoder = MLP(latent_dim, hidden_dim, n_hidden, 1)
+        self.x1_decoder = MLP(latent_dim, hidden_dim, n_hidden, 1)
 
     def posterior_params(self, x0, x1):
         x = torch.cat((x0, x1))
@@ -28,14 +26,13 @@ class InputConcatVAE(nn.Module):
         x1_reconst = self.x1_decoder(latent)
         return x0_reconst, x1_reconst, mu, logvar
 
-class InputConcatSSVAE(nn.Module):
-    def __init__(self, x0_dim, x1_dim, y_dim, hidden_dim, n_hidden, latent_dim):
-        super(InputConcatSSVAE, self).__init__()
-        print(inspect.getsource(MLP))
-        self.xy_to_mu = MLP(x0_dim + x1_dim + y_dim, hidden_dim, n_hidden, latent_dim)
-        self.xy_to_logvar = MLP(x0_dim + x1_dim + y_dim, hidden_dim, n_hidden, latent_dim)
-        self.x0_decoder = MLP(latent_dim + y_dim, hidden_dim, n_hidden, x0_dim)
-        self.x1_decoder = MLP(latent_dim + y_dim, hidden_dim, n_hidden, x1_dim)
+class TwoScalarSSVAE(nn.Module):
+    def __init__(self, hidden_dim, n_hidden, latent_dim):
+        super(TwoScalarSSVAE, self).__init__()
+        self.xy_to_mu = MLP(3, hidden_dim, n_hidden, latent_dim)
+        self.xy_to_logvar = MLP(3, hidden_dim, n_hidden, latent_dim)
+        self.x0_decoder = MLP(latent_dim + 1, hidden_dim, n_hidden, 1)
+        self.x1_decoder = MLP(latent_dim + 1, hidden_dim, n_hidden, 1)
 
     def posterior_params(self, x0, x1, y):
         xy = torch.hstack((x0, x1, y))

@@ -14,7 +14,7 @@ def set_seed(seed):
     random.seed(seed)
 
 def split_data(x, y, trainval_ratios):
-    n_train, n_val = [int(len(x) * split_ratio) for split_ratio in trainval_ratios]
+    n_train, n_val = [int(len(x) * trainval_ratio) for trainval_ratio in trainval_ratios]
     x_train, y_train = x[:n_train], y[:n_train]
     x_val, y_val = x[n_train:n_train + n_val], y[n_train:n_train + n_val]
     x_mean, x_sd = x_train.mean(0), x_train.std(0)
@@ -32,14 +32,6 @@ def make_dataloaders(data_train, data_val, data_test, batch_size):
     data_val = DataLoader(TensorDataset(*data_val), batch_size=batch_size)
     data_test = DataLoader(TensorDataset(*data_test), batch_size=batch_size)
     return data_train, data_val, data_test
-
-def vae_kldiv(mu, logvar):
-    return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-def vae_loss(x0, x1, x0_reconst, x1_reconst, mu, logvar):
-    x0_reconst_loss = F.mse_loss(x0_reconst, x0, reduction='sum')
-    x1_reconst_loss = F.mse_loss(x1_reconst, x1, reduction='sum')
-    return x0_reconst_loss + x1_reconst_loss + vae_kldiv(mu, logvar)
 
 def train_epoch_vanilla(train_data, model, optimizer):
     model.train()
@@ -60,6 +52,14 @@ def eval_epoch_vanilla(eval_data, model):
             loss_batch = F.binary_cross_entropy(torch.sigmoid(model(x_batch)), y_batch)
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch)
+
+def vae_kldiv(mu, logvar):
+    return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+def vae_loss(x0, x1, x0_reconst, x1_reconst, mu, logvar):
+    x0_reconst_loss = F.mse_loss(x0_reconst, x0, reduction='sum')
+    x1_reconst_loss = F.mse_loss(x1_reconst, x1, reduction='sum')
+    return x0_reconst_loss + x1_reconst_loss + vae_kldiv(mu, logvar)
 
 def train_epoch_vae(train_data, model, optimizer, is_ssl):
     model.train()

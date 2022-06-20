@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from toy_problem.data import make_data
-from nn.input_concat_vae import InputConcatSSVAE
+from nn.two_scalar_vae import TwoScalarSSVAE
 
 seed = 0
 set_seed(seed)
@@ -19,9 +19,6 @@ uy_prior_nonspurious = np.array([
     [0.25, 0.25]])
 sigma = 0.9
 
-x0_dim = 1
-x1_dim = 1
-y_dim = 1
 hidden_dim = 128
 n_hidden = 3
 latent_dim = 128
@@ -37,23 +34,22 @@ x_nonspurious, y_nonspurious = make_data(rng, n_examples, uy_prior_nonspurious, 
 (x_train_nonspurious, y_train_nonspurious), (x_val_nonspurious, y_val_nonspurious), (x_test_nonspurious, y_test_nonspurious) = \
     split_data(x_nonspurious, y_nonspurious, trainval_ratios)
 
-x_train_union, y_train_union = \
-    np.vstack((x_train_spurious, x_train_nonspurious)), \
-    np.concatenate((y_train_spurious, y_train_nonspurious))
-x_val_union, y_val_union = \
-    np.vstack((x_val_spurious, x_val_nonspurious)), \
-    np.concatenate((y_val_spurious, y_val_nonspurious))
-x_test_union, y_test_union = \
-    np.vstack((x_test_spurious, x_test_nonspurious)), \
-    np.concatenate((y_test_spurious, y_test_nonspurious))
+x_train_union = np.vstack((x_train_spurious, x_train_nonspurious))
+y_train_union = np.concatenate((y_train_spurious, y_train_nonspurious))
+
+x_val_union = np.vstack((x_val_spurious, x_val_nonspurious))
+y_val_union = np.concatenate((y_val_spurious, y_val_nonspurious))
+
+x_test_union = np.vstack((x_test_spurious, x_test_nonspurious))
+y_test_union = np.concatenate((y_test_spurious, y_test_nonspurious))
 
 x0_train_spurious, x1_train_spurious = x_train_spurious[:, 0], x_train_spurious[:, 1]
 x0_val_spurious, x1_val_spurious = x_val_spurious[:, 0], x_val_spurious[:, 1]
 x0_test_spurious, x1_test_spurious = x_test_spurious[:, 0], x_test_spurious[:, 1]
 
-x0_train_nonspurious, x1_train_nonspurious = x_train_nonspurious[:, 0], x_train_nonspurious[:, 1]
-x0_val_nonspurious, x1_val_nonspurious = x_val_nonspurious[:, 0], x_val_nonspurious[:, 1]
-x0_test_nonspurious, x1_test_nonspurious = x_test_nonspurious[:, 0], x_test_nonspurious[:, 1]
+x0_train_union, x1_train_union = x_train_union[:, 0], x_train_union[:, 1]
+x0_val_union, x1_val_union = x_val_union[:, 0], x_val_union[:, 1]
+x0_test_union, x1_test_union = x_test_union[:, 0], x_test_union[:, 1]
 
 data_train_spurious = torch.tensor(x0_train_spurious)[:, None], torch.tensor(x1_train_spurious)[:, None], \
     torch.tensor(y_train_spurious)[:, None]
@@ -62,21 +58,21 @@ data_val_spurious = torch.tensor(x0_val_spurious)[:, None], torch.tensor(x1_val_
 data_test_spurious = torch.tensor(x0_test_spurious)[:, None], torch.tensor(x1_test_spurious)[:, None], \
     torch.tensor(y_test_spurious)[:, None]
 
-data_train_nonspurious = torch.tensor(x0_train_nonspurious)[:, None], torch.tensor(x1_train_nonspurious)[:, None], \
-    torch.tensor(y_train_nonspurious)[:, None]
-data_val_nonspurious = torch.tensor(x0_val_nonspurious)[:, None], torch.tensor(x1_val_nonspurious)[:, None], \
-    torch.tensor(y_val_nonspurious)[:, None]
-data_test_nonspurious = torch.tensor(x0_test_nonspurious)[:, None], torch.tensor(x1_test_nonspurious)[:, None], \
-    torch.tensor(y_test_nonspurious)[:, None]
+data_train_union = torch.tensor(x0_train_union)[:, None], torch.tensor(x1_train_union)[:, None], \
+    torch.tensor(y_train_union)[:, None]
+data_val_union = torch.tensor(x0_val_union)[:, None], torch.tensor(x1_val_union)[:, None], \
+    torch.tensor(y_val_union)[:, None]
+data_test_union = torch.tensor(x0_test_union)[:, None], torch.tensor(x1_test_union)[:, None], \
+    torch.tensor(y_test_union)[:, None]
 
 data_spurious = make_dataloaders(data_train_spurious, data_val_spurious, data_test_spurious, batch_size)
-data_union = make_dataloaders(data_train_nonspurious, data_val_nonspurious, data_test_nonspurious, batch_size)
+data_union = make_dataloaders(data_train_union, data_val_union, data_test_union, batch_size)
 
 train_f = partial(train_epoch_vae, is_ssl=True)
 eval_f = partial(eval_epoch_vae, is_ssl=True)
 
-model_spurious = InputConcatSSVAE(x0_dim, x1_dim, y_dim, hidden_dim, n_hidden, latent_dim)
-model_union = InputConcatSSVAE(x0_dim, x1_dim, y_dim, hidden_dim, n_hidden, latent_dim)
+model_spurious = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
+model_union = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
 optimizer_spurious = Adam(model_spurious.parameters())
 optimizer_union = Adam(model_union.parameters())
 
