@@ -5,7 +5,7 @@ from utils.ml import *
 from nn.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
-from data import make_data
+from toy_problem.data import make_data
 from nn.input_concat_vae import InputConcatVAE, InputConcatSSVAE
 
 def plot_binary_scatter(ax, x, y):

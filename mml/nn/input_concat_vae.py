@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-from mlp import MLP
+from nn.mlp import MLP
+
+import inspect
 
 class InputConcatVAE(nn.Module):
     def __init__(self, x0_dim, x1_dim, hidden_dim, n_hidden, latent_dim):
@@ -29,6 +31,7 @@ class InputConcatVAE(nn.Module):
 class InputConcatSSVAE(nn.Module):
     def __init__(self, x0_dim, x1_dim, y_dim, hidden_dim, n_hidden, latent_dim):
         super(InputConcatSSVAE, self).__init__()
+        print(inspect.getsource(MLP))
         self.xy_to_mu = MLP(x0_dim + x1_dim + y_dim, hidden_dim, n_hidden, latent_dim)
         self.xy_to_logvar = MLP(x0_dim + x1_dim + y_dim, hidden_dim, n_hidden, latent_dim)
         self.x0_decoder = MLP(latent_dim + y_dim, hidden_dim, n_hidden, x0_dim)
