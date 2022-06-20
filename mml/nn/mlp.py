@@ -2,7 +2,7 @@ import torch.nn as nn
 
 class MLP(nn.Module):
     def __init__(self, input_dim, hidden_dim, n_hidden, output_dim):
-        super().__init__()
+        super(MLP).__init__()
         module_list = []
         module_list.append(nn.Linear(input_dim, hidden_dim))
         module_list.append(nn.ReLU())

@@ -1,4 +1,3 @@
-import os
 from functools import partial
 from utils.ml import *
 from torch.optim import Adam
