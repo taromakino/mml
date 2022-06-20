@@ -6,7 +6,7 @@ from nn.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from data import make_data
-from nn.vae import VAE, VAE_SSL
+from nn.input_concat_vae import InputConcatVAE, InputConcatSSVAE
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]
@@ -25,20 +25,21 @@ uy_prior_train = np.array([
     [0.25, 0.25]])
 sigma = 0.9
 
-x_dim = 2
+x0_dim = 1
+x1_dim = 1
 y_dim = 1
 hidden_dim = 128
 n_hidden = 3
 latent_dim = 128
 
-mlp = MLP(x_dim, hidden_dim, n_hidden, y_dim)
-vae = VAE(x_dim, hidden_dim, n_hidden, latent_dim)
-vae_ssl = VAE_SSL(x_dim, y_dim, hidden_dim, n_hidden, latent_dim)
+mlp = MLP(x0_dim, hidden_dim, n_hidden, y_dim)
+vae = InputConcatVAE(x0_dim, hidden_dim, n_hidden, latent_dim)
+ssvae = InputConcatSSVAE(x0_dim, y_dim, hidden_dim, n_hidden, latent_dim)
 critic = MLP(latent_dim, hidden_dim, n_hidden, y_dim)
 
 optim_mlp = Adam(mlp.parameters())
 optim_vae = Adam(vae.parameters())
-optim_vae_ssl = Adam(vae_ssl.parameters())
+optim_ssvae = Adam(ssvae.parameters())
 optim_critic = Adam(critic.parameters())
 
 x_train, y_train = make_data(rng, n_examples, uy_prior_train, sigma)
@@ -48,20 +49,16 @@ x_train, y_train = torch.tensor(x_train), torch.tensor(y_train)
 train_data = DataLoader(TensorDataset(x_train, y_train[:, None]), batch_size=batch_size, shuffle=True)
 
 for epoch in range(n_epochs):
-    train_epoch_vanilla(epoch, train_data, mlp, optim_mlp)
-    train_epoch_vae(epoch, train_data, vae, optim_vae, False)
-    train_epoch_vae(epoch, train_data, vae_ssl, optim_vae_ssl, True)
+    train_epoch_vanilla(train_data, mlp, optim_mlp)
+    train_epoch_vae(train_data, vae, optim_vae, False)
+    train_epoch_vae(train_data, ssvae, optim_ssvae, True)
 torch.save(mlp.state_dict(), os.path.join("results", "mlp.pt"))
 torch.save(vae.state_dict(), os.path.join("results", "vae.pt"))
-torch.save(vae_ssl.state_dict(), os.path.join("results", "vae_ssl.pt"))
-
-# mlp.load_state_dict(torch.load(os.path.join("results", "mlp.pt")))
-# vae.load_state_dict(torch.load(os.path.join("results", "vae.pt")))
-# vae_ssl.load_state_dict(torch.load(os.path.join("results", "vae_ssl.pt")))
+torch.save(ssvae.state_dict(), os.path.join("results", "ssvae.pt"))
 
 mlp.eval()
 vae.eval()
-vae_ssl.eval()
+ssvae.eval()
 
 pred = torch.sigmoid(mlp(x_train))
 pred = (pred > 0.5).squeeze().int()
@@ -71,7 +68,7 @@ u_train, pseudo_y_train = [], []
 with torch.no_grad():
     for x_batch, y_batch in train_data:
         u_neg = vae.sample_latents(*vae.posterior_params(x_batch))
-        u_pos = vae_ssl.sample_latents(*vae_ssl.posterior_params(x_batch, y_batch))
+        u_pos = ssvae.sample_latents(*ssvae.posterior_params(x_batch, y_batch))
         u_batch = torch.vstack((u_neg, u_pos))
         pseudo_y_batch = torch.cat((torch.zeros(len(u_neg)), torch.ones(len(u_pos))))
         u_train.append(u_batch)
@@ -83,10 +80,8 @@ pseudo_y_train = torch.cat(pseudo_y_train)
 critic_data = DataLoader(TensorDataset(u_train, pseudo_y_train[:, None]), batch_size=batch_size, shuffle=True)
 
 for epoch in range(n_epochs):
-    train_epoch_vanilla(epoch, critic_data, critic, optim_critic)
+    train_epoch_vanilla(critic_data, critic, optim_critic)
 torch.save(critic.state_dict(), os.path.join("results", "critic.pt"))
-
-# critic.load_state_dict(torch.load(os.path.join("results", "critic.pt")))
 
 critic.eval()
 
@@ -110,7 +105,7 @@ with torch.no_grad():
     for x_elem, y_elem in unlabeled_data:
         # y_elem = torch.bernoulli(torch.sigmoid(mlp(x_elem)))
         u_neg = vae.sample_latents(*vae.posterior_params(x_elem), n_samples)
-        u_pos = vae_ssl.sample_latents(*vae_ssl.posterior_params(x_elem, y_elem), n_samples)
+        u_pos = ssvae.sample_latents(*ssvae.posterior_params(x_elem, y_elem), n_samples)
         u_batch = torch.vstack((u_neg, u_pos))
         pred = torch.clip(torch.sigmoid(critic(u_batch)), EPSILON, 1 - EPSILON)
         uy_mutual_info.append((torch.log(pred) - torch.log(1 - pred)).mean().item())
