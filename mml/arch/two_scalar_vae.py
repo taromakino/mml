@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from nn.mlp import MLP
+from arch.mlp import MLP
 
 class TwoScalarVAE(nn.Module):
     def __init__(self, hidden_dim, n_hidden, latent_dim):

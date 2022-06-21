@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from toy_problem.data import make_data
-from nn.two_scalar_vae import TwoScalarSSVAE
+from arch.two_scalar_vae import TwoScalarSSVAE
 
 seed = 0
 set_seed(seed)

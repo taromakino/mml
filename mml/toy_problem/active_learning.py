@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import os
 from utils.const import *
 from utils.ml import *
-from nn.mlp import MLP
+from arch.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from toy_problem.data import make_data
-from nn.two_scalar_vae import TwoScalarVAE, TwoScalarSSVAE
+from arch.two_scalar_vae import TwoScalarVAE, TwoScalarSSVAE
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]
