@@ -7,7 +7,7 @@ def make_data(rng, n_examples, uy_distr, sigma):
     ub10 = ub01 + p10
     uy = []
     for _ in range(n_examples):
-        p = np.random.random()
+        p = rng.random()
         if p <= ub00:
             uy.append([0, 0])
         elif p <= ub01:
