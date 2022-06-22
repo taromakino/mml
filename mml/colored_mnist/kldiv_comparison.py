@@ -78,8 +78,8 @@ def main(args):
         (x0_val_union, x1_val_union, y_val_union),
         (x0_test_union, x1_test_union, y_test_union), args.batch_size)
 
-    train_f = partial(train_epoch_vae, loss_fn0=F.binary_cross_entropy, loss_fn1=F.mse_loss, is_ssl=True)
-    eval_f = partial(eval_epoch_vae, loss_fn0=F.binary_cross_entropy, loss_fn1=F.mse_loss, is_ssl=True)
+    train_f = partial(train_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
+    eval_f = partial(eval_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
 
     model_det = ImageScalarSSVAE(hidden_dim, n_hidden, latent_dim)
     model_union = ImageScalarSSVAE(hidden_dim, n_hidden, latent_dim)
