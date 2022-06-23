@@ -16,13 +16,14 @@ def color_image(img, is_red):
 def make_data(is_trainval, p_flip_color, sigma):
     data = datasets.mnist.MNIST(os.environ["DATA_DPATH"], train=is_trainval, download=True)
     imgs, scalars, y = [], [], []
-    for idx, (img, y_elem) in enumerate(data):
+    for idx, (img, digit) in enumerate(data):
         img = np.array(img)
-        u_elem = y_elem < 5
+        y_elem = 0 if digit < 5 else 1
+        u = digit == 0
         if np.random.uniform() < p_flip_color:
-            u_elem = not u_elem
-        imgs.append(color_image(img, u_elem))
-        scalars.append(2 * y_elem + u_elem + np.random.normal(0, sigma))
+            u = not u
+        imgs.append(color_image(img, u))
+        scalars.append(2 * y_elem + u + np.random.normal(0, sigma))
         y.append(y_elem)
     imgs = np.array(imgs, dtype="float32")
     imgs = imgs.reshape(imgs.shape[0], -1)
