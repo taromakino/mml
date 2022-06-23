@@ -78,13 +78,10 @@ def main(args):
 
     x0_dim = x0_train_det.shape[1]
     x1_dim = x1_train_det.shape[1]
-    h_dim = 256
-    h_reps = 3
-    z_dim = 128
     y_dim = y_train_det.shape[1]
 
-    model_det = SSVAE(x0_dim, x1_dim, h_dim, h_reps, z_dim, y_dim)
-    model_union = SSVAE(x0_dim, x1_dim, h_dim, h_reps, z_dim, y_dim)
+    model_det = SSVAE(x0_dim, x1_dim, args.h_dim, args.h_reps, args.z_dim, y_dim)
+    model_union = SSVAE(x0_dim, x1_dim, args.h_dim, args.h_reps, args.z_dim, y_dim)
     model_det.to(make_device())
     model_union.to(make_device())
     optimizer_det = Adam(model_det.parameters(), lr=1e-4)
@@ -113,4 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int)
     parser.add_argument("--n-epochs", type=int)
     parser.add_argument("--batch-size", type=int)
+    parser.add_argument("--h-dim", type=int)
+    parser.add_argument("--h-reps", type=int)
+    parser.add_argument("--z-dim", type=int)
     main(parser.parse_args())
