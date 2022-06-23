@@ -3,7 +3,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from toy_problem.data import make_data
-from arch.two_scalar_vae import TwoScalarSSVAE
+from arch.input_concat_vae import SSVAE
 
 def main(args):
     set_seed(args.seed)
@@ -69,8 +69,8 @@ def main(args):
     train_f = partial(train_epoch_vae, loss_fn0=F.mse_loss, loss_fn1=F.mse_loss, is_ssl=True)
     eval_f = partial(eval_epoch_vae, loss_fn0=F.mse_loss, loss_fn1=F.mse_loss, is_ssl=True)
 
-    model_det = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
-    model_union = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
+    model_det = SSVAE(hidden_dim, n_hidden, latent_dim)
+    model_union = SSVAE(hidden_dim, n_hidden, latent_dim)
     optimizer_det = Adam(model_det.parameters())
     optimizer_union = Adam(model_union.parameters())
 

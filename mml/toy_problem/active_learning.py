@@ -6,7 +6,7 @@ from arch.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from toy_problem.data import make_data
-from arch.two_scalar_vae import TwoScalarVAE, TwoScalarSSVAE
+from arch.input_concat_vae import VAE, SSVAE
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]
@@ -30,8 +30,8 @@ n_hidden = 3
 latent_dim = 128
 
 mlp = MLP(2, hidden_dim, n_hidden, 1)
-vae = TwoScalarVAE(hidden_dim, n_hidden, latent_dim)
-ssvae = TwoScalarSSVAE(hidden_dim, n_hidden, latent_dim)
+vae = VAE(hidden_dim, n_hidden, latent_dim)
+ssvae = SSVAE(hidden_dim, n_hidden, latent_dim)
 critic = MLP(latent_dim, hidden_dim, n_hidden, 1)
 
 optim_mlp = Adam(mlp.parameters())
@@ -64,8 +64,8 @@ print(f"{(pred == y_train.squeeze()).float().mean():.3f}")
 u_train, pseudo_y_train = [], []
 with torch.no_grad():
     for x_batch, y_batch in train_data:
-        u_neg = vae.sample_latents(*vae.posterior_params(x_batch))
-        u_pos = ssvae.sample_latents(*ssvae.posterior_params(x_batch, y_batch))
+        u_neg = vae.sample_z(*vae.posterior_params(x_batch))
+        u_pos = ssvae.sample_z(*ssvae.posterior_params(x_batch, y_batch))
         u_batch = torch.vstack((u_neg, u_pos))
         pseudo_y_batch = torch.cat((torch.zeros(len(u_neg)), torch.ones(len(u_pos))))
         u_train.append(u_batch)
@@ -101,8 +101,8 @@ uy_mutual_info = []
 with torch.no_grad():
     for x_elem, y_elem in unlabeled_data:
         # y_elem = torch.bernoulli(torch.sigmoid(mlp(x_elem)))
-        u_neg = vae.sample_latents(*vae.posterior_params(x_elem), n_samples)
-        u_pos = ssvae.sample_latents(*ssvae.posterior_params(x_elem, y_elem), n_samples)
+        u_neg = vae.sample_z(*vae.posterior_params(x_elem), n_samples)
+        u_pos = ssvae.sample_z(*ssvae.posterior_params(x_elem, y_elem), n_samples)
         u_batch = torch.vstack((u_neg, u_pos))
         pred = torch.clip(torch.sigmoid(critic(u_batch)), EPSILON, 1 - EPSILON)
         uy_mutual_info.append((torch.log(pred) - torch.log(1 - pred)).mean().item())

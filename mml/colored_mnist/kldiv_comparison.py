@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from colored_mnist.data import make_data
-from arch.image_scalar_vae import ImageScalarSSVAE
+from arch.input_concat_vae import SSVAE
 from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
@@ -25,13 +25,8 @@ def main(args):
     set_seed(args.seed)
 
     trainval_ratios = [0.8, 0.2]
-
     p_flip_color = 0.5
     sigma = 1
-
-    hidden_dim = 128
-    n_hidden = 3
-    latent_dim = 128
 
     x0_trainval_det, x1_trainval_det, y_trainval_det = make_data(True, 0, sigma)
     x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet = make_data(True, p_flip_color, sigma)
@@ -81,12 +76,19 @@ def main(args):
     train_f = partial(train_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
     eval_f = partial(eval_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
 
-    model_det = ImageScalarSSVAE(hidden_dim, n_hidden, latent_dim)
-    model_union = ImageScalarSSVAE(hidden_dim, n_hidden, latent_dim)
+    x0_dim = x0_train_det.shape[1]
+    x1_dim = x1_train_det.shape[1]
+    h_dim = 256
+    h_reps = 3
+    z_dim = 128
+    y_dim = y_train_det.shape[1]
+
+    model_det = SSVAE(x0_dim, x1_dim, h_dim, h_reps, z_dim, y_dim)
+    model_union = SSVAE(x0_dim, x1_dim, h_dim, h_reps, z_dim, y_dim)
     model_det.to(make_device())
     model_union.to(make_device())
-    optimizer_det = Adam(model_det.parameters(), lr=1e-4)
-    optimizer_union = Adam(model_union.parameters(), lr=1e-4)
+    optimizer_det = Adam(model_det.parameters())
+    optimizer_union = Adam(model_union.parameters())
 
     dpath_spurious = os.path.join(args.dpath, "spurious")
     dpath_union = os.path.join(args.dpath, "union")
@@ -96,11 +98,13 @@ def main(args):
     train_eval_loop(*data_det, model_det, optimizer_det, train_f, eval_f, dpath_spurious, args.n_epochs)
     train_eval_loop(*data_union, model_union, optimizer_union, train_f, eval_f, dpath_union, args.n_epochs)
 
+    device = make_device()
     kldivs_det, kldivs_union = [], []
     data_test_union = data_union[-1]
-    for x_batch, y_batch in data_test_union:
-        kldivs_det.append(vae_kldiv(*model_det.posterior_params(x_batch, y_batch)).item())
-        kldivs_union.append(vae_kldiv(*model_union.posterior_params(x_batch, y_batch)).item())
+    for x0_batch, x1_batch, y_batch in data_test_union:
+        x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
+        kldivs_det.append(vae_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
+        kldivs_union.append(vae_kldiv(*model_union.posterior_params(x0_batch, x1_batch, y_batch)).item())
     print(f"det={np.mean(kldivs_det):.3f}, union={np.mean(kldivs_union):.3f}")
 
 if __name__ == "__main__":
