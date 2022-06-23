@@ -122,7 +122,7 @@ def train_eval_loop(data_train, data_val, data_test, model, optimizer, train_f, 
         write(val_fpath, f"{timestamp()}, {epoch}, {val_loss_str}")
         if val_loss < min_val_loss:
             optimal_weights = deepcopy(model.state_dict())
-    torch.save(optimal_weights, os.path.join("dpath", "optimal_weights.pt"))
+    torch.save(optimal_weights, os.path.join(dpath, "optimal_weights.pt"))
     model.load_state_dict(optimal_weights)
     test_loss_x0, test_loss_x1, test_loss_kldiv, test_loss = eval_f(data_test, model)
     test_loss_str = f"{test_loss_x0:.6f}, {test_loss_x1:.6f}, {test_loss_kldiv:.6f}, {test_loss:.6f}"
