@@ -63,13 +63,13 @@ def eval_epoch_vanilla(eval_data, model):
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch)
 
-def vae_kldiv(mu, logvar):
+def posterior_kldiv(mu, logvar):
     return torch.mean(-0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1))
 
-def vae_loss(x0, x1, x0_reconst, x1_reconst, mu, logvar, loss_fn0, loss_fn1):
+def elbo_loss(x0, x1, x0_reconst, x1_reconst, mu, logvar, loss_fn0, loss_fn1):
     x0_reconst_loss = loss_fn0(x0_reconst, x0)
     x1_reconst_loss = loss_fn1(x1_reconst, x1)
-    return x0_reconst_loss, x1_reconst_loss, vae_kldiv(mu, logvar)
+    return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
 def train_epoch_vae(train_data, model, optimizer, loss_fn0, loss_fn1, is_ssl):
     device = make_device()
@@ -79,7 +79,7 @@ def train_epoch_vae(train_data, model, optimizer, loss_fn0, loss_fn1, is_ssl):
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch) if is_ssl else model(x0_batch, x1_batch)
-        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = vae_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu, logvar,
+        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu, logvar,
             loss_fn0, loss_fn1)
         loss_batch = loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv
         loss_batch.backward()
@@ -98,8 +98,8 @@ def eval_epoch_vae(eval_data, model, loss_fn0, loss_fn1, is_ssl):
         for x0_batch, x1_batch, y_batch in eval_data:
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
             x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch) if is_ssl else model(x0_batch, x1_batch)
-            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = vae_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu,
-                logvar, loss_fn0, loss_fn1)
+            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu,
+                                                                       logvar, loss_fn0, loss_fn1)
             loss_batch = loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv
             loss_epoch_x0.append(loss_batch_x0.item())
             loss_epoch_x1.append(loss_batch_x1.item())

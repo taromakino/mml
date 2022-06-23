@@ -87,8 +87,8 @@ def main(args):
     model_union = SSVAE(x0_dim, x1_dim, h_dim, h_reps, z_dim, y_dim)
     model_det.to(make_device())
     model_union.to(make_device())
-    optimizer_det = Adam(model_det.parameters())
-    optimizer_union = Adam(model_union.parameters())
+    optimizer_det = Adam(model_det.parameters(), lr=1e-4)
+    optimizer_union = Adam(model_union.parameters(), lr=1e-4)
 
     dpath_spurious = os.path.join(args.dpath, "spurious")
     dpath_union = os.path.join(args.dpath, "union")
@@ -103,8 +103,8 @@ def main(args):
     data_test_union = data_union[-1]
     for x0_batch, x1_batch, y_batch in data_test_union:
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-        kldivs_det.append(vae_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
-        kldivs_union.append(vae_kldiv(*model_union.posterior_params(x0_batch, x1_batch, y_batch)).item())
+        kldivs_det.append(posterior_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
+        kldivs_union.append(posterior_kldiv(*model_union.posterior_params(x0_batch, x1_batch, y_batch)).item())
     print(f"det={np.mean(kldivs_det):.3f}, union={np.mean(kldivs_union):.3f}")
 
 if __name__ == "__main__":

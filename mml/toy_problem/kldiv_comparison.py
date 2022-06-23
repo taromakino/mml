@@ -85,8 +85,8 @@ def main(args):
     kldivs_det, kldivs_union = [], []
     data_test_union = data_union[-1]
     for x0_batch, x1_batch, y_batch in data_test_union:
-        kldivs_det.append(vae_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
-        kldivs_union.append(vae_kldiv(*model_union.posterior_params(x0_batch, x1_batch, y_batch)).item())
+        kldivs_det.append(posterior_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
+        kldivs_union.append(posterior_kldiv(*model_union.posterior_params(x0_batch, x1_batch, y_batch)).item())
     print(f"det={np.mean(kldivs_det):.3f}, union={np.mean(kldivs_union):.3f}")
 
 if __name__ == "__main__":
