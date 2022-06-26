@@ -24,20 +24,16 @@ def split_data(x0, x1, y, trainval_ratios):
 def main(args):
     set_seed(args.seed)
 
-    trainval_ratios = [0.8, 0.2]
-    p_flip_color = 0.5
-    sigma = 1
+    x0_trainval_det, x1_trainval_det, y_trainval_det = make_data(True, 0, args.sigma)
+    x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet = make_data(True, args.p_flip_color, args.sigma)
 
-    x0_trainval_det, x1_trainval_det, y_trainval_det = make_data(True, 0, sigma)
-    x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet = make_data(True, p_flip_color, sigma)
-
-    x0_test_det, x1_test_det, y_test_det = make_data(False, 0, sigma)
-    x0_test_nondet, x1_test_nondet, y_test_nondet = make_data(False, p_flip_color, sigma)
+    x0_test_det, x1_test_det, y_test_det = make_data(False, 0, args.sigma)
+    x0_test_nondet, x1_test_nondet, y_test_nondet = make_data(False, args.p_flip_color, args.sigma)
 
     (x0_train_det, x1_train_det, y_train_det), (x0_val_det, x1_val_det, y_val_det) = \
-        split_data(x0_trainval_det, x1_trainval_det, y_trainval_det, trainval_ratios)
+        split_data(x0_trainval_det, x1_trainval_det, y_trainval_det, args.trainval_ratios)
     (x0_train_nondet, x1_train_nondet, y_train_nondet), (x0_val_nondet, x1_val_nondet, y_val_nondet) = \
-        split_data(x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet, trainval_ratios)
+        split_data(x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet, args.trainval_ratios)
 
     x0_train_det, x1_train_det = torch.tensor(x0_train_det), torch.tensor(x1_train_det)[:, None]
     x0_val_det, x1_val_det = torch.tensor(x0_val_det), torch.tensor(x1_val_det)[:, None]
@@ -108,6 +104,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dpath", type=str)
     parser.add_argument("--seed", type=int)
+    parser.add_argument("--p-flip-color", type=float)
+    parser.add_argument("--sigma", type=float)
+    parser.add_argument('--trainval-ratios', nargs='+', type=float)
     parser.add_argument("--n-epochs", type=int)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--h-dim", type=int)
