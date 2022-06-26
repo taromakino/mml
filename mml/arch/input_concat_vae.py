@@ -15,9 +15,12 @@ class VAE(nn.Module):
         return self.x_to_mu(x), self.x_to_logvar(x)
 
     def sample_z(self, mu, logvar, n_samples=1):
-        sd = torch.exp(logvar / 2) # Same as sqrt(exp(logvar))
-        eps = torch.randn((n_samples, len(sd))) if n_samples > 1 else torch.randn_like(sd)
-        return mu + eps * sd
+        if self.training:
+            sd = torch.exp(logvar / 2) # Same as sqrt(exp(logvar))
+            eps = torch.randn((n_samples, len(sd))) if n_samples > 1 else torch.randn_like(sd)
+            return mu + eps * sd
+        else:
+            return mu
 
     def forward(self, x0, x1):
         mu, logvar = self.posterior_params(x0, x1)

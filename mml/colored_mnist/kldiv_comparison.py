@@ -94,6 +94,8 @@ def main(args):
     device = make_device()
     kldivs_det, kldivs_union = [], []
     data_test_union = data_union[-1]
+    model_det.eval()
+    model_union.eval()
     for x0_batch, x1_batch, y_batch in data_test_union:
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
         kldivs_det.append(posterior_kldiv(*model_det.posterior_params(x0_batch, x1_batch, y_batch)).item())
