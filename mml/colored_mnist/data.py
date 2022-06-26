@@ -19,7 +19,7 @@ def make_data(is_trainval, p_flip_color, sigma):
     for idx, (img, digit) in enumerate(data):
         img = np.array(img)
         y_elem = 0 if digit < 5 else 1
-        u = digit == 0
+        u = y_elem == 0
         if np.random.uniform() < p_flip_color:
             u = not u
         imgs.append(color_image(img, u))
