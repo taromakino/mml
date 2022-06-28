@@ -3,7 +3,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from toy_problem.data import make_data
-from arch.input_concat_vae import SSVAE
+from arch.mlp_vae import SSVAE
 
 def main(args):
     set_seed(args.seed)

@@ -6,7 +6,7 @@ from arch.mlp import MLP
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 from toy_problem.data import make_data
-from arch.input_concat_vae import VAE, SSVAE
+from arch.mlp_vae import VAE, SSVAE
 
 def plot_binary_scatter(ax, x, y):
     neg_idxs, pos_idxs = np.where(y == 0)[0], np.where(y == 1)[0]

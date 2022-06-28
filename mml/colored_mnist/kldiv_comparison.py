@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from colored_mnist.data import make_data
-from arch.input_concat_vae import SSVAE
+from arch.conv_vae import SSVAE
 from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
@@ -77,8 +77,8 @@ def main(args):
     x1_dim = x1_train_det.shape[1]
     y_dim = y_train_det.shape[1]
 
-    model_det = SSVAE(x0_dim, x1_dim, args.h_dim, args.h_reps, args.z_dim, y_dim)
-    model_union = SSVAE(x0_dim, x1_dim, args.h_dim, args.h_reps, args.z_dim, y_dim)
+    model_det = SSVAE(x1_dim, args.h_dim, args.z_dim, y_dim)
+    model_union = SSVAE(x1_dim, args.h_dim, args.z_dim, y_dim)
     model_det.to(make_device())
     model_union.to(make_device())
     optimizer_det = Adam(model_det.parameters(), lr=1e-4)
@@ -107,13 +107,12 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dpath", type=str, default="results")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--p-flip-color", type=float, default=0)
+    parser.add_argument("--p-flip-color", type=float, default=0.5)
     parser.add_argument("--sigma", type=float, default=0.1)
     parser.add_argument('--trainval-ratios', nargs='+', type=float, default=[0.8, 0.2])
     parser.add_argument("--n-epochs", type=int, default=50)
     parser.add_argument("--n-anneal-epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--h-dim", type=int, default=256)
-    parser.add_argument("--h-reps", type=int, default=3)
     parser.add_argument("--z-dim", type=int, default=256)
     main(parser.parse_args())
