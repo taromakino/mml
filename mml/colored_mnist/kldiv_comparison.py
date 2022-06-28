@@ -69,7 +69,8 @@ def main(args):
         (x0_val_union, x1_val_union, y_val_union),
         (x0_test_union, x1_test_union, y_test_union), args.batch_size)
 
-    train_f = partial(train_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
+    train_f = partial(train_epoch_vae, n_anneal_epochs=args.n_anneal_epochs,  loss_fn0=F.binary_cross_entropy_with_logits,
+        loss_fn1=F.mse_loss, is_ssl=True)
     eval_f = partial(eval_epoch_vae, loss_fn0=F.binary_cross_entropy_with_logits, loss_fn1=F.mse_loss, is_ssl=True)
 
     x0_dim = x0_train_det.shape[1]
@@ -104,14 +105,15 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--dpath", type=str)
-    parser.add_argument("--seed", type=int)
-    parser.add_argument("--p-flip-color", type=float)
-    parser.add_argument("--sigma", type=float)
-    parser.add_argument('--trainval-ratios', nargs='+', type=float)
-    parser.add_argument("--n-epochs", type=int)
-    parser.add_argument("--batch-size", type=int)
-    parser.add_argument("--h-dim", type=int)
-    parser.add_argument("--h-reps", type=int)
-    parser.add_argument("--z-dim", type=int)
+    parser.add_argument("--dpath", type=str, default="results")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--p-flip-color", type=float, default=0)
+    parser.add_argument("--sigma", type=float, default=0.1)
+    parser.add_argument('--trainval-ratios', nargs='+', type=float, default=[0.8, 0.2])
+    parser.add_argument("--n-epochs", type=int, default=50)
+    parser.add_argument("--n-anneal-epochs", type=int, default=10)
+    parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--h-dim", type=int, default=256)
+    parser.add_argument("--h-reps", type=int, default=3)
+    parser.add_argument("--z-dim", type=int, default=256)
     main(parser.parse_args())

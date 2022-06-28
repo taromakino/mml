@@ -71,17 +71,19 @@ def elbo_loss(x0, x1, x0_reconst, x1_reconst, mu, logvar, loss_fn0, loss_fn1):
     x1_reconst_loss = loss_fn1(x1_reconst, x1)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
-def train_epoch_vae(train_data, model, optimizer, loss_fn0, loss_fn1, is_ssl):
+def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs, loss_fn0, loss_fn1, is_ssl):
+    n_batches = len(train_data)
     device = make_device()
     model.train()
     loss_epoch_x0, loss_epoch_x1, loss_epoch_kldiv, loss_epoch = [], [], [], []
-    for x0_batch, x1_batch, y_batch in train_data:
+    for batch_idx, (x0_batch, x1_batch, y_batch) in enumerate(train_data):
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch) if is_ssl else model(x0_batch, x1_batch)
         loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu, logvar,
             loss_fn0, loss_fn1)
-        loss_batch = loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv
+        anneal_mult = (batch_idx + epoch * n_batches) / (n_anneal_epochs * n_batches) if epoch < n_anneal_epochs else 1
+        loss_batch = loss_batch_x0 + loss_batch_x1 + anneal_mult * loss_batch_kldiv
         loss_batch.backward()
         loss_epoch_x0.append(loss_batch_x0.item())
         loss_epoch_x1.append(loss_batch_x1.item())
@@ -99,7 +101,7 @@ def eval_epoch_vae(eval_data, model, loss_fn0, loss_fn1, is_ssl):
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
             x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch) if is_ssl else model(x0_batch, x1_batch)
             loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_reconst, mu,
-                                                                       logvar, loss_fn0, loss_fn1)
+                logvar, loss_fn0, loss_fn1)
             loss_batch = loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv
             loss_epoch_x0.append(loss_batch_x0.item())
             loss_epoch_x1.append(loss_batch_x1.item())
@@ -114,7 +116,7 @@ def train_eval_loop(data_train, data_val, data_test, model, optimizer, train_f, 
     min_val_loss = np.inf
     optimal_weights = deepcopy(model.load_state_dict)
     for epoch in range(n_epochs):
-        train_loss_x0, train_loss_x1, train_loss_kldiv, train_loss = train_f(data_train, model, optimizer)
+        train_loss_x0, train_loss_x1, train_loss_kldiv, train_loss = train_f(data_train, model, optimizer, epoch)
         val_loss_x0, val_loss_x1, val_loss_kldiv, val_loss = eval_f(data_val, model)
         train_loss_str = f"{train_loss_x0:.6f}, {train_loss_x1:.6f}, {train_loss_kldiv:.6f}, {train_loss:.6f}"
         val_loss_str = f"{val_loss_x0:.6f}, {val_loss_x1:.6f}, {val_loss_kldiv:.6f}, {val_loss:.6f}"
