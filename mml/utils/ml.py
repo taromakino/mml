@@ -74,7 +74,7 @@ def elbo_loss(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
     x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
-def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
+def train_epoch_vae(train_data, model, optimizer, epoch, loss_mults, n_anneal_epochs):
     n_batches = len(train_data)
     device = make_device()
     model.train()
@@ -85,7 +85,7 @@ def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
         x0_reconst, x1_mu, x1_logprec, mu, logvar = model(x0_batch, x1_batch, y_batch)
         loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_mu, x1_logprec, mu, logvar)
         anneal_mult = (batch_idx + epoch * n_batches) / (n_anneal_epochs * n_batches) if epoch < n_anneal_epochs else 1
-        loss_batch = loss_batch_x0 + loss_batch_x1 + anneal_mult * loss_batch_kldiv
+        loss_batch = loss_mults[0] * loss_batch_x0 + loss_mults[1] * loss_batch_x1 + anneal_mult * loss_batch_kldiv
         loss_batch.backward()
         loss_epoch_x0.append(loss_batch_x0.item())
         loss_epoch_x1.append(loss_batch_x1.item())

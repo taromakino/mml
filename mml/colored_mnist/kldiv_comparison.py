@@ -69,7 +69,7 @@ def main(args):
         (x0_val_union, x1_val_union, y_val_union),
         (x0_test_union, x1_test_union, y_test_union), args.batch_size)
 
-    train_f = partial(train_epoch_vae, n_anneal_epochs=args.n_anneal_epochs)
+    train_f = partial(train_epoch_vae, loss_mults=args.loss_mults, n_anneal_epochs=args.n_anneal_epochs)
 
     x0_dim = x0_train_det.shape[1]
     x1_dim = x1_train_det.shape[1]
@@ -108,10 +108,11 @@ if __name__ == "__main__":
     parser.add_argument("--p-flip-color", type=float, default=0.5)
     parser.add_argument("--sigma", type=float, default=0.1)
     parser.add_argument("--trainval-ratios", nargs="+", type=float, default=[0.8, 0.2])
-    parser.add_argument("--n-epochs", type=int, default=50)
-    parser.add_argument("--n-anneal-epochs", type=int, default=0)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--loss-mults", nargs="+", type=float, default=[1, 1])
+    parser.add_argument("--n-epochs", type=int, default=100)
+    parser.add_argument("--n-anneal-epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=100)
-    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--hidden-dims", nargs="+", type=int, default=[256, 256, 256])
     parser.add_argument("--latent-dim", type=int, default=256)
     main(parser.parse_args())
