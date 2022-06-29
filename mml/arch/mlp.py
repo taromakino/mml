@@ -1,15 +1,15 @@
 import torch.nn as nn
 
 class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, n_hidden, output_dim):
+    def __init__(self, input_dim, hidden_dims, target_dim):
         super(MLP, self).__init__()
         module_list = []
-        module_list.append(nn.Linear(input_dim, hidden_dim))
-        module_list.append(nn.ReLU())
-        for _ in range(n_hidden):
-            module_list.append(nn.Linear(hidden_dim, hidden_dim))
+        prev_dim = input_dim
+        for hidden_dim in hidden_dims:
+            module_list.append(nn.Linear(prev_dim, hidden_dim))
             module_list.append(nn.ReLU())
-        module_list.append(nn.Linear(hidden_dim, output_dim))
+            prev_dim = hidden_dim
+        module_list.append(nn.Linear(hidden_dims[-1], target_dim))
         self.module_list = nn.Sequential(*module_list) # Don't call this self.modules
 
     def forward(self, x):
