@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from colored_mnist.data import make_data
-from arch.mlp_vae import SSVAE
+from arch.conv_vae import SSVAE
 from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
@@ -71,7 +71,7 @@ def main(args):
 
     train_f = partial(train_epoch_vae, loss_mults=args.loss_mults, n_anneal_epochs=args.n_anneal_epochs)
 
-    x0_dim = x0_train_det.shape[1]
+    x0_dim = x0_train_det.shape[1:]
     x1_dim = x1_train_det.shape[1]
     y_dim = y_train_det.shape[1]
 
@@ -113,6 +113,6 @@ if __name__ == "__main__":
     parser.add_argument("--n-epochs", type=int, default=100)
     parser.add_argument("--n-anneal-epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=100)
-    parser.add_argument("--hidden-dims", nargs="+", type=int, default=[256, 256, 256])
+    parser.add_argument("--hidden-dims", nargs="+", type=int, default=[64, 128, 256])
     parser.add_argument("--latent-dim", type=int, default=256)
     main(parser.parse_args())

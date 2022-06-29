@@ -67,7 +67,7 @@ def posterior_kldiv(mu, logvar):
     return torch.mean(-0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1))
 
 def gaussian_nll(x, mu, logprec):
-    return (0.5 * torch.log(2 * torch.tensor(torch.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2).mean()
+    return (0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2).mean()
 
 def elbo_loss(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
     x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0)

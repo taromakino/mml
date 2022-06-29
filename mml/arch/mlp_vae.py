@@ -9,7 +9,7 @@ class SSVAE(nn.Module):
         self.encoder_logvar = MLP(input0_dim + input1_dim + target_dim, hidden_dims, latent_dim)
         self.x0_decoder = MLP(latent_dim + target_dim, hidden_dims, input0_dim)
         self.x1_decoder_mu = nn.Linear(latent_dim + target_dim, input1_dim)
-        self.x1_decoder_prec = nn.Linear(latent_dim + target_dim, input1_dim)
+        self.x1_decoder_logprec = nn.Linear(latent_dim + target_dim, input1_dim)
 
     def posterior_params(self, x0, x1, y):
         xy = torch.hstack((x0, x1, y))
@@ -28,5 +28,5 @@ class SSVAE(nn.Module):
         z = self.sample_z(mu, logvar)
         x0_reconst = self.x0_decoder(torch.hstack((z, y)))
         x1_mu = self.x1_decoder_mu(torch.hstack((z, y)))
-        x1_logprec = self.x1_decoder_prec(torch.hstack((z, y)))
+        x1_logprec = self.x1_decoder_logprec(torch.hstack((z, y)))
         return x0_reconst, x1_mu, x1_logprec, mu, logvar
