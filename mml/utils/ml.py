@@ -64,13 +64,13 @@ def eval_epoch_vanilla(eval_data, model):
     return np.mean(loss_epoch)
 
 def posterior_kldiv(mu, logvar):
-    return torch.mean(-0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1))
+    return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
 
 def gaussian_nll(x, mu, logprec):
-    return (0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2).mean()
+    return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
 def elbo_loss(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
-    x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0)
+    x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
     x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
@@ -85,11 +85,11 @@ def train_epoch_vae(train_data, model, optimizer, epoch, loss_mults, n_anneal_ep
         x0_reconst, x1_mu, x1_logprec, mu, logvar = model(x0_batch, x1_batch, y_batch)
         loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_mu, x1_logprec, mu, logvar)
         anneal_mult = (batch_idx + epoch * n_batches) / (n_anneal_epochs * n_batches) if epoch < n_anneal_epochs else 1
-        loss_batch = loss_mults[0] * loss_batch_x0 + loss_mults[1] * loss_batch_x1 + anneal_mult * loss_batch_kldiv
+        loss_batch = (loss_mults[0] * loss_batch_x0 + loss_mults[1] * loss_batch_x1 + anneal_mult * loss_batch_kldiv).mean()
         loss_batch.backward()
-        loss_epoch_x0.append(loss_batch_x0.item())
-        loss_epoch_x1.append(loss_batch_x1.item())
-        loss_epoch_kldiv.append(loss_batch_kldiv.item())
+        loss_epoch_x0.append(loss_batch_x0.mean().item())
+        loss_epoch_x1.append(loss_batch_x1.mean().item())
+        loss_epoch_kldiv.append(loss_batch_kldiv.mean().item())
         loss_epoch.append(loss_batch.item())
         optimizer.step()
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
@@ -104,10 +104,10 @@ def eval_epoch_vae(eval_data, model):
             x0_reconst, x1_mu, x1_logprec, mu, logvar = model(x0_batch, x1_batch, y_batch)
             loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_mu, x1_logprec,
                 mu, logvar)
-            loss_batch = loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv
-            loss_epoch_x0.append(loss_batch_x0.item())
-            loss_epoch_x1.append(loss_batch_x1.item())
-            loss_epoch_kldiv.append(loss_batch_kldiv.item())
+            loss_batch = (loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv).mean()
+            loss_epoch_x0.append(loss_batch_x0.mean().item())
+            loss_epoch_x1.append(loss_batch_x1.mean().item())
+            loss_epoch_kldiv.append(loss_batch_kldiv.mean().item())
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
 
