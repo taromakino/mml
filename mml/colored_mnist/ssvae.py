@@ -23,7 +23,7 @@ class SSVAE(nn.Module):
         z = self.sample_z(mu, logvar)
         x0_reconst = self.x0_decoder(torch.hstack((z, y)))
         x1_mu = self.x1_decoder_mu(torch.hstack((z, y)))
-        x1_logprec = self.x1_decoder_mu(torch.hstack((z, y)))
+        x1_logprec = self.x1_decoder_logprec(torch.hstack((z, y)))
         return x0_reconst, x1_mu, x1_logprec, mu, logvar
 
 class Encoder(nn.Module):
