@@ -23,14 +23,10 @@ def split_data(x, y, trainval_ratios):
     n_train, n_val = [int(len(x) * trainval_ratio) for trainval_ratio in trainval_ratios]
     x_train, y_train = x[:n_train], y[:n_train]
     x_val, y_val = x[n_train:n_train + n_val], y[n_train:n_train + n_val]
-    x_mean, x_sd = x_train.mean(0), x_train.std(0)
-    x_train = (x_train - x_mean) / x_sd
-    x_val = (x_val - x_mean) / x_sd
     if sum(trainval_ratios) == 1:
         return (x_train, y_train), (x_val, y_val)
     else:
         x_test, y_test = x[n_train + n_val:], y[n_train + n_val:]
-        x_test = (x_test - x_mean) / x_sd
         return (x_train, y_train), (x_val, y_val), (x_test, y_test)
 
 def make_dataloaders(data_train, data_val, data_test, batch_size):

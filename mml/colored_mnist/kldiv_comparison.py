@@ -7,18 +7,13 @@ from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
     assert sum(trainval_ratios) == 1
-    x0 /= 255.
     n_train, n_val = [int(len(x0) * split_ratio) for split_ratio in trainval_ratios]
     x0_train, x1_train, y_train = x0[:n_train], x1[:n_train], y[:n_train]
     x0_val, x1_val, y_val = x0[n_train:n_train + n_val], x1[n_train:n_train + n_val], y[n_train:n_train + n_val]
-    x1_mean, x1_sd = x1_train.mean(0), x1_train.std(0)
-    x1_train = (x1_train - x1_mean) / x1_sd
-    x1_val = (x1_val - x1_mean) / x1_sd
     if sum(trainval_ratios) == 1:
         return (x0_train, x1_train, y_train), (x0_val, x1_val, y_val)
     else:
         x0_test, x1_test, y_test = x0[n_train + n_val:], x1[n_train + n_val:], y[n_train + n_val:]
-        x1_test = (x1_test - x1_mean) / x1_sd
         return (x0_train, x1_train, y_train), (x0_val, x1_val, y_val), (x0_test, x1_test, y_test)
 
 def main(args):
