@@ -13,8 +13,13 @@ def color_image(img, is_red):
         img = np.concatenate([np.zeros((h, w, 1), dtype=dtype), img, np.zeros((h, w, 1), dtype=dtype)], axis=2)
     return img
 
-def make_data(is_trainval, p_flip_color, sigma):
-    data = datasets.mnist.MNIST(os.environ["DATA_DPATH"], train=is_trainval, download=True)
+def make_data(dataset_name, rng, is_trainval, p_flip_color, sigma):
+    if dataset_name == "MNIST":
+        data = datasets.mnist.MNIST(os.environ["DATA_DPATH"], train=is_trainval, download=True)
+    elif dataset_name == "FashionMNIST":
+        data = datasets.mnist.FashionMNIST(os.environ["DATA_DPATH"], train=is_trainval, download=True)
+    else:
+        raise ValueError
     imgs, scalars, y = [], [], []
     for idx, (img, digit) in enumerate(data):
         img = np.array(img)
@@ -23,7 +28,7 @@ def make_data(is_trainval, p_flip_color, sigma):
         if np.random.uniform() < p_flip_color:
             u_elem = not u_elem
         imgs.append(color_image(img, u_elem))
-        scalars.append(2 * y_elem + u_elem + np.random.normal(0, sigma))
+        scalars.append(2 * y_elem + u_elem + rng.normal(0, sigma))
         y.append(y_elem)
     imgs = np.array(imgs, dtype="float32")
     imgs = imgs.reshape((len(imgs), -1)) / 255

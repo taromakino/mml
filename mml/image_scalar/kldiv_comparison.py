@@ -1,8 +1,8 @@
 from functools import partial
 from utils.ml import *
 from torch.optim import Adam
-from colored_mnist.data import make_data
-from colored_mnist.ssvae import SSVAE
+from image_scalar.data import make_data
+from arch.image_scalar_vae import ImageScalarVae
 from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
@@ -18,12 +18,14 @@ def split_data(x0, x1, y, trainval_ratios):
 
 def main(args):
     set_seed(args.seed)
+    rng = np.random.RandomState(args.seed)
 
-    x0_trainval_det, x1_trainval_det, y_trainval_det = make_data(True, 0, args.sigma)
-    x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet = make_data(True, args.p_flip_color, args.sigma)
+    x0_trainval_det, x1_trainval_det, y_trainval_det = make_data(args.dataset_name, rng, True, 0, args.sigma)
+    x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet = make_data(args.dataset_name, rng, True,
+        args.p_flip_color, args.sigma)
 
-    x0_test_det, x1_test_det, y_test_det = make_data(False, 0, args.sigma)
-    x0_test_nondet, x1_test_nondet, y_test_nondet = make_data(False, args.p_flip_color, args.sigma)
+    x0_test_det, x1_test_det, y_test_det = make_data(args.dataset_name, rng, False, 0, args.sigma)
+    x0_test_nondet, x1_test_nondet, y_test_nondet = make_data(args.dataset_name, rng, False, args.p_flip_color, args.sigma)
 
     (x0_train_det, x1_train_det, y_train_det), (x0_val_det, x1_val_det, y_val_det) = \
         split_data(x0_trainval_det, x1_trainval_det, y_trainval_det, args.trainval_ratios)
@@ -64,10 +66,10 @@ def main(args):
         (x0_val_union, x1_val_union, y_val_union),
         (x0_test_union, x1_test_union, y_test_union), args.batch_size)
 
-    train_f = partial(train_epoch_vae, loss_mults=args.loss_mults, n_anneal_epochs=args.n_anneal_epochs)
+    train_f = partial(train_epoch_vae, n_anneal_epochs=args.n_anneal_epochs)
 
-    model_det = SSVAE()
-    model_union = SSVAE()
+    model_det = ImageScalarVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
+    model_union = ImageScalarVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
     model_det.to(make_device())
     model_union.to(make_device())
     optimizer_det = Adam(model_det.parameters(), lr=args.lr)
@@ -96,12 +98,14 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dpath", type=str, default="results")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--dataset-name", type=str, default="MNIST")
     parser.add_argument("--p-flip-color", type=float, default=0.5)
     parser.add_argument("--sigma", type=float, default=0.1)
     parser.add_argument("--trainval-ratios", nargs="+", type=float, default=[0.8, 0.2])
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--loss-mults", nargs="+", type=float, default=[1, 1])
     parser.add_argument("--n-epochs", type=int, default=100)
     parser.add_argument("--n-anneal-epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--hidden-dim", type=int, default=512)
+    parser.add_argument("--latent-dim", type=int, default=256)
     main(parser.parse_args())

@@ -3,10 +3,15 @@ import numpy as np
 import os
 import random
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from copy import deepcopy
 from torch.utils.data import DataLoader, TensorDataset
 from utils.file import write
+
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
 
 def set_seed(seed):
     torch.backends.cudnn.deterministic = True
@@ -65,12 +70,12 @@ def posterior_kldiv(mu, logvar):
 def gaussian_nll(x, mu, logprec):
     return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
-def elbo_loss(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
+def image_scalar_elbo(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
     x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
     x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
-def train_epoch_vae(train_data, model, optimizer, epoch, loss_mults, n_anneal_epochs):
+def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
     n_batches = len(train_data)
     device = make_device()
     model.train()
@@ -78,10 +83,10 @@ def train_epoch_vae(train_data, model, optimizer, epoch, loss_mults, n_anneal_ep
     for batch_idx, (x0_batch, x1_batch, y_batch) in enumerate(train_data):
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
-        x0_reconst, x1_mu, x1_logprec, mu, logvar = model(x0_batch, x1_batch, y_batch)
-        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_mu, x1_logprec, mu, logvar)
+        model_output = model(x0_batch, x1_batch, y_batch)
+        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = image_scalar_elbo(x0_batch, x1_batch, *model_output)
         anneal_mult = (batch_idx + epoch * n_batches) / (n_anneal_epochs * n_batches) if epoch < n_anneal_epochs else 1
-        loss_batch = (loss_mults[0] * loss_batch_x0 + loss_mults[1] * loss_batch_x1 + anneal_mult * loss_batch_kldiv).mean()
+        loss_batch = (loss_batch_x0 + loss_batch_x1 + anneal_mult * loss_batch_kldiv).mean()
         loss_batch.backward()
         loss_epoch_x0.append(loss_batch_x0.mean().item())
         loss_epoch_x1.append(loss_batch_x1.mean().item())
@@ -97,9 +102,8 @@ def eval_epoch_vae(eval_data, model):
     with torch.no_grad():
         for x0_batch, x1_batch, y_batch in eval_data:
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-            x0_reconst, x1_mu, x1_logprec, mu, logvar = model(x0_batch, x1_batch, y_batch)
-            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = elbo_loss(x0_batch, x1_batch, x0_reconst, x1_mu, x1_logprec,
-                mu, logvar)
+            model_output = model(x0_batch, x1_batch, y_batch)
+            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = image_scalar_elbo(x0_batch, x1_batch, *model_output)
             loss_batch = (loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv).mean()
             loss_epoch_x0.append(loss_batch_x0.mean().item())
             loss_epoch_x1.append(loss_batch_x1.mean().item())

@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+from utils.ml import Swish
 
-class SSVAE(nn.Module):
-    def __init__(self):
-        super(SSVAE, self).__init__()
-        self.encoder = Encoder()
-        self.x0_decoder = Decoder()
+class ImageScalarVae(nn.Module):
+    def __init__(self, image_dim, hidden_dim, latent_dim):
+        super(ImageScalarVae, self).__init__()
+        self.encoder = ImageEncoder(image_dim, hidden_dim, latent_dim)
+        self.x0_decoder = ImageDecoder(image_dim, hidden_dim, latent_dim)
         self.x1_decoder_mu = nn.Linear(256 + 1, 1)
         self.x1_decoder_logprec = nn.Linear(256 + 1, 1)
 
@@ -26,13 +26,13 @@ class SSVAE(nn.Module):
         x1_logprec = self.x1_decoder_logprec(torch.hstack((z, y)))
         return x0_reconst, x1_mu, x1_logprec, mu, logvar
 
-class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()
-        self.fc1 = nn.Linear(784 * 3 + 2, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc31 = nn.Linear(512, 256)
-        self.fc32 = nn.Linear(512, 256)
+class ImageEncoder(nn.Module):
+    def __init__(self, image_dim, hidden_dim, latent_dim):
+        super(ImageEncoder, self).__init__()
+        self.fc1 = nn.Linear(image_dim + 2, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc31 = nn.Linear(hidden_dim, latent_dim)
+        self.fc32 = nn.Linear(hidden_dim, latent_dim)
         self.swish = Swish()
 
     def forward(self, x):
@@ -40,13 +40,13 @@ class Encoder(nn.Module):
         h = self.swish(self.fc2(h))
         return self.fc31(h), self.fc32(h)
 
-class Decoder(nn.Module):
-    def __init__(self):
-        super(Decoder, self).__init__()
-        self.fc1 = nn.Linear(256 + 1, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, 784 * 3)
+class ImageDecoder(nn.Module):
+    def __init__(self, image_dim, hidden_dim, latent_dim):
+        super(ImageDecoder, self).__init__()
+        self.fc1 = nn.Linear(latent_dim + 1, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc4 = nn.Linear(hidden_dim, image_dim)
         self.swish = Swish()
 
     def forward(self, z):
@@ -54,7 +54,3 @@ class Decoder(nn.Module):
         h = self.swish(self.fc2(h))
         h = self.swish(self.fc3(h))
         return self.fc4(h)
-
-class Swish(nn.Module):
-    def forward(self, x):
-        return x * torch.sigmoid(x)
