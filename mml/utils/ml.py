@@ -11,7 +11,10 @@ from utils.file import write
 
 class Swish(nn.Module):
     def forward(self, x):
-        return x * torch.sigmoid(x)
+        return swish(x)
+
+def swish(x):
+    return x * torch.sigmoid(x)
 
 def set_seed(seed):
     torch.backends.cudnn.deterministic = True

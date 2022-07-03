@@ -3,7 +3,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from scalar_scalar.data import make_data
-from arch.image_scalar_vae import ImageScalarVae
+from scalar_scalar.model import SemiSupervisedVae
 
 def main(args):
     set_seed(args.seed)
@@ -19,10 +19,6 @@ def main(args):
         [0.25, 0.25],
         [0.25, 0.25]])
     sigma = 0.9
-
-    hidden_dim = 256
-    n_hidden = 3
-    latent_dim = 256
 
     x_det, y_det = make_data(rng, n_examples, uy_prior_det, sigma)
     x_nondet, y_nondet = make_data(rng, n_examples, uy_prior_nondet, sigma)
@@ -69,8 +65,8 @@ def main(args):
     train_f = partial(train_epoch_vae, loss_fn0=F.mse_loss, loss_fn1=F.mse_loss, is_ssl=True)
     eval_f = partial(eval_epoch_vae, loss_fn0=F.mse_loss, loss_fn1=F.mse_loss, is_ssl=True)
 
-    model_det = ImageScalarVae(hidden_dim, n_hidden, latent_dim)
-    model_union = ImageScalarVae(hidden_dim, n_hidden, latent_dim)
+    model_det = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
+    model_union = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
     optimizer_det = Adam(model_det.parameters())
     optimizer_union = Adam(model_union.parameters())
 
@@ -91,8 +87,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--dpath", type=str)
-    parser.add_argument("--seed", type=int)
-    parser.add_argument("--n-epochs", type=int)
-    parser.add_argument("--batch-size", type=int)
+    parser.add_argument("--dpath", type=str, default="results")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--n-epochs", type=int, default=50)
+    parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--hidden-dim", type=int, default=256)
+    parser.add_argument("--latent-dim", type=int, default=256)
     main(parser.parse_args())

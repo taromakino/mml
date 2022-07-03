@@ -2,7 +2,7 @@ from functools import partial
 from utils.ml import *
 from torch.optim import Adam
 from image_scalar.data import make_data
-from arch.image_scalar_vae import ImageScalarVae
+from model import SemiSupervisedVae
 from argparse import ArgumentParser
 
 def split_data(x0, x1, y, trainval_ratios):
@@ -68,8 +68,8 @@ def main(args):
 
     train_f = partial(train_epoch_vae, n_anneal_epochs=args.n_anneal_epochs)
 
-    model_det = ImageScalarVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
-    model_union = ImageScalarVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
+    model_det = SemiSupervisedVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
+    model_union = SemiSupervisedVae(x0_train_det.shape[1], args.hidden_dim, args.latent_dim)
     model_det.to(make_device())
     model_union.to(make_device())
     optimizer_det = Adam(model_det.parameters(), lr=args.lr)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--dataset-name", type=str, default="MNIST")
     parser.add_argument("--p-flip-color", type=float, default=0.5)
-    parser.add_argument("--sigma", type=float, default=0.1)
+    parser.add_argument("--sigma", type=float, default=1)
     parser.add_argument("--trainval-ratios", nargs="+", type=float, default=[0.8, 0.2])
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--n-epochs", type=int, default=100)
