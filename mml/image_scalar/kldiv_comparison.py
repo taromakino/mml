@@ -32,6 +32,17 @@ def main(args):
     (x0_train_nondet, x1_train_nondet, y_train_nondet), (x0_val_nondet, x1_val_nondet, y_val_nondet) = \
         split_data(x0_trainval_nondet, x1_trainval_nondet, y_trainval_nondet, args.trainval_ratios)
 
+    x1_mean_det, x1_sd_det = x1_train_det.mean(), x1_train_det.std()
+    x1_mean_nondet, x1_sd_nondet = x1_train_nondet.mean(), x1_train_nondet.std()
+
+    x1_train_det = (x1_train_det - x1_mean_det) / x1_sd_det
+    x1_val_det = (x1_val_det - x1_mean_det) / x1_sd_det
+    x1_test_det = (x1_test_det - x1_mean_det) / x1_sd_det
+
+    x1_train_nondet = (x1_train_nondet - x1_mean_nondet) / x1_sd_nondet
+    x1_val_nondet = (x1_val_nondet - x1_mean_nondet) / x1_sd_nondet
+    x1_test_nondet = (x1_test_nondet - x1_mean_nondet) / x1_sd_nondet
+
     x0_train_det, x1_train_det = torch.tensor(x0_train_det), torch.tensor(x1_train_det)[:, None]
     x0_val_det, x1_val_det = torch.tensor(x0_val_det), torch.tensor(x1_val_det)[:, None]
     x0_test_det, x1_test_det = torch.tensor(x0_test_det), torch.tensor(x1_test_det)[:, None]
