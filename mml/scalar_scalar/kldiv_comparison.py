@@ -109,14 +109,16 @@ def main(args):
     kldivs_det, kldivs_union = [], []
     for x0_batch, x1_batch, y_batch in data_test_det:
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).item())
-        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).item())
+        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).detach().numpy())
+        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).detach().numpy())
+    kldivs_det, kldivs_union = np.array(kldivs_det), np.array(kldivs_union)
     write(test_fpath, f"data_test_det, model_det={np.mean(kldivs_det):.3f}, model_union={np.mean(kldivs_union):.3f}")
     kldivs_det, kldivs_union = [], []
     for x0_batch, x1_batch, y_batch in data_test_nondet:
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).item())
-        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).item())
+        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).detach().numpy())
+        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).detach().numpy())
+    kldivs_det, kldivs_union = np.array(kldivs_det), np.array(kldivs_union)
     write(test_fpath, f"data_test_nondet, model_det={np.mean(kldivs_det):.3f}, model_union={np.mean(kldivs_union):.3f}")
 
 if __name__ == "__main__":
