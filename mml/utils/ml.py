@@ -37,6 +37,9 @@ def split_data(trainval_ratios, *arrays):
         arrays_test = [array[n_train + n_val:] for array in arrays]
         return arrays_train, arrays_val, arrays_test
 
+def to_1d_torch(*arrs):
+    return [torch.tensor(arr)[:, None] for arr in arrs]
+
 def make_dataloader(data_tuple, batch_size, is_train):
     return DataLoader(TensorDataset(*data_tuple), batch_size=batch_size, shuffle=is_train)
 
@@ -83,6 +86,11 @@ def image_image_elbo(x0, x1, x0_reconst, x1_reconst, mu, logvar):
 
 def image_scalar_elbo(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
     x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
+    x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
+    return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
+
+def scalar_scalar_elbo(x0, x1, x0_mu, x0_logprec, x1_mu, x1_logprec, mu, logvar):
+    x0_reconst_loss = gaussian_nll(x0, x0_mu, x0_logprec)
     x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 

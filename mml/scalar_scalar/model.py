@@ -22,6 +22,9 @@ class SemiSupervisedVae(nn.Module):
         self.x1_decoder_mu = nn.Linear(latent_dim + 1, 1)
         self.x1_decoder_logprec = nn.Linear(latent_dim + 1, 1)
 
+    def encode(self, x0, x1, y):
+        return self.encoder(torch.hstack((x0, x1, y)))
+
     def sample_z(self, mu, logvar):
         if self.training:
             sd = torch.exp(logvar / 2) # Same as sqrt(exp(logvar))
@@ -31,7 +34,7 @@ class SemiSupervisedVae(nn.Module):
             return mu
 
     def forward(self, x0, x1, y):
-        mu, logvar = self.encoder(torch.hstack((x0, x1, y)))
+        mu, logvar = self.encode(x0, x1, y)
         z = self.sample_z(mu, logvar)
         x0_mu = self.x0_decoder_mu(torch.hstack((z, y)))
         x0_logprec = self.x0_decoder_logprec(torch.hstack((z, y)))
