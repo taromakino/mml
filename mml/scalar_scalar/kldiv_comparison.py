@@ -23,10 +23,9 @@ def main(args):
     x_det, y_det = make_data(rng, n_examples, uy_prior_det, sigma)
     x_nondet, y_nondet = make_data(rng, n_examples, uy_prior_nondet, sigma)
 
-    (x_train_det, y_train_det), (x_val_det, y_val_det), (x_test_det, y_test_det) = \
-        split_data(x_det, y_det, trainval_ratios)
-    (x_train_nondet, y_train_nondet), (x_val_nondet, y_val_nondet), (x_test_nondet, y_test_nondet) = \
-        split_data(x_nondet, y_nondet, trainval_ratios)
+    (x_train_det, y_train_det), (x_val_det, y_val_det), (x_test_det, y_test_det) = split_data(trainval_ratios, x_det, y_det)
+    (x_train_nondet, y_train_nondet), (x_val_nondet, y_val_nondet), (x_test_nondet, y_test_nondet) = split_data(
+        trainval_ratios, x_nondet, y_nondet)
 
     x_train_union = np.vstack((x_train_det, x_train_nondet))
     y_train_union = np.concatenate((y_train_det, y_train_nondet))

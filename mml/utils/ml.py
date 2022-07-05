@@ -27,15 +27,15 @@ def set_seed(seed):
 def make_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def split_data(x, y, trainval_ratios):
-    n_train, n_val = [int(len(x) * trainval_ratio) for trainval_ratio in trainval_ratios]
-    x_train, y_train = x[:n_train], y[:n_train]
-    x_val, y_val = x[n_train:n_train + n_val], y[n_train:n_train + n_val]
+def split_data(trainval_ratios, *arrays):
+    n_train, n_val = [int(len(arrays[0]) * split_ratio) for split_ratio in trainval_ratios]
+    arrays_train = [array[:n_train] for array in arrays]
+    arrays_val = [array[n_train:n_train + n_val] for array in arrays]
     if sum(trainval_ratios) == 1:
-        return (x_train, y_train), (x_val, y_val)
+        return arrays_train, arrays_val
     else:
-        x_test, y_test = x[n_train + n_val:], y[n_train + n_val:]
-        return (x_train, y_train), (x_val, y_val), (x_test, y_test)
+        arrays_test = [array[n_train + n_val:] for array in arrays]
+        return arrays_train, arrays_val, arrays_test
 
 def make_dataloaders(data_train, data_val, data_test, batch_size):
     data_train = DataLoader(TensorDataset(*data_train), batch_size=batch_size, shuffle=True)
@@ -73,12 +73,17 @@ def posterior_kldiv(mu, logvar):
 def gaussian_nll(x, mu, logprec):
     return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
+def image_image_elbo(x0, x1, x0_reconst, x1_reconst, mu, logvar):
+    x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
+    x1_reconst_loss = F.binary_cross_entropy_with_logits(x1_reconst, x1, reduction="none").sum(dim=1)
+    return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
+
 def image_scalar_elbo(x0, x1, x0_reconst, x1_mu, x1_logprec, mu, logvar):
     x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
     x1_reconst_loss = gaussian_nll(x1, x1_mu, x1_logprec)
     return x0_reconst_loss, x1_reconst_loss, posterior_kldiv(mu, logvar)
 
-def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
+def train_epoch_vae(train_data, model, optimizer, epoch, loss_fn, n_anneal_epochs):
     n_batches = len(train_data)
     device = make_device()
     model.train()
@@ -87,7 +92,7 @@ def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
         x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
         optimizer.zero_grad()
         model_output = model(x0_batch, x1_batch, y_batch)
-        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = image_scalar_elbo(x0_batch, x1_batch, *model_output)
+        loss_batch_x0, loss_batch_x1, loss_batch_kldiv = loss_fn(x0_batch, x1_batch, *model_output)
         anneal_mult = (batch_idx + epoch * n_batches) / (n_anneal_epochs * n_batches) if epoch < n_anneal_epochs else 1
         loss_batch = (loss_batch_x0 + loss_batch_x1 + anneal_mult * loss_batch_kldiv).mean()
         loss_batch.backward()
@@ -98,7 +103,7 @@ def train_epoch_vae(train_data, model, optimizer, epoch, n_anneal_epochs):
         optimizer.step()
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
 
-def eval_epoch_vae(eval_data, model):
+def eval_epoch_vae(eval_data, model, loss_fn):
     device = make_device()
     model.eval()
     loss_epoch_x0, loss_epoch_x1, loss_epoch_kldiv, loss_epoch = [], [], [], []
@@ -106,7 +111,7 @@ def eval_epoch_vae(eval_data, model):
         for x0_batch, x1_batch, y_batch in eval_data:
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
             model_output = model(x0_batch, x1_batch, y_batch)
-            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = image_scalar_elbo(x0_batch, x1_batch, *model_output)
+            loss_batch_x0, loss_batch_x1, loss_batch_kldiv = loss_fn(x0_batch, x1_batch, *model_output)
             loss_batch = (loss_batch_x0 + loss_batch_x1 + loss_batch_kldiv).mean()
             loss_epoch_x0.append(loss_batch_x0.mean().item())
             loss_epoch_x1.append(loss_batch_x1.mean().item())
