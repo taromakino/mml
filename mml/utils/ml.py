@@ -144,8 +144,10 @@ def train_eval_loop(data_train, data_val, model, optimizer, train_f, eval_f, dpa
         write(train_fpath, f"{timestamp()}, {epoch}, {train_loss_str}")
         write(val_fpath, f"{timestamp()}, {epoch}, {val_loss_str}")
         if val_loss < min_val_loss:
+            min_val_loss = val_loss
             optimal_weights = deepcopy(model.state_dict())
             optimal_epoch = epoch
+            print(f"epoch={epoch}, optimal_epoch={optimal_epoch}")
         if epoch - optimal_epoch == n_early_stop_epochs:
             break
     torch.save(optimal_weights, os.path.join(dpath, "optimal_weights.pt"))
