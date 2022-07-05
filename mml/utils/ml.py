@@ -37,6 +37,9 @@ def split_data(trainval_ratios, *arrays):
         arrays_test = [array[n_train + n_val:] for array in arrays]
         return arrays_train, arrays_val, arrays_test
 
+def make_dataloader(data_tuple, batch_size, is_train):
+    return DataLoader(TensorDataset(*data_tuple), batch_size=batch_size, shuffle=is_train)
+
 def make_dataloaders(data_train, data_val, data_test, batch_size):
     data_train = DataLoader(TensorDataset(*data_train), batch_size=batch_size, shuffle=True)
     data_val = DataLoader(TensorDataset(*data_val), batch_size=batch_size)
@@ -119,12 +122,12 @@ def eval_epoch_vae(eval_data, model, loss_fn):
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
 
-def train_eval_loop(data_train, data_val, data_test, model, optimizer, train_f, eval_f, dpath, n_epochs):
+def train_eval_loop(data_train, data_val, model, optimizer, train_f, eval_f, dpath, n_epochs, n_early_stop_epochs):
     train_fpath = os.path.join(dpath, "train_summary.txt")
     val_fpath = os.path.join(dpath, "val_summary.txt")
-    test_fpath = os.path.join(dpath, "test_summary.txt")
     min_val_loss = np.inf
     optimal_weights = deepcopy(model.load_state_dict)
+    optimal_epoch = 0
     for epoch in range(n_epochs):
         train_loss_x0, train_loss_x1, train_loss_kldiv, train_loss = train_f(data_train, model, optimizer, epoch)
         val_loss_x0, val_loss_x1, val_loss_kldiv, val_loss = eval_f(data_val, model)
@@ -134,11 +137,11 @@ def train_eval_loop(data_train, data_val, data_test, model, optimizer, train_f, 
         write(val_fpath, f"{timestamp()}, {epoch}, {val_loss_str}")
         if val_loss < min_val_loss:
             optimal_weights = deepcopy(model.state_dict())
+            optimal_epoch = epoch
+        if epoch - optimal_epoch == n_early_stop_epochs:
+            break
     torch.save(optimal_weights, os.path.join(dpath, "optimal_weights.pt"))
     model.load_state_dict(optimal_weights)
-    test_loss_x0, test_loss_x1, test_loss_kldiv, test_loss = eval_f(data_test, model)
-    test_loss_str = f"{test_loss_x0:.6f}, {test_loss_x1:.6f}, {test_loss_kldiv:.6f}, {test_loss:.6f}"
-    write(test_fpath, f"{timestamp()}, {test_loss_str}")
 
 def timestamp():
     return datetime.datetime.now().strftime('%H:%M:%S')
