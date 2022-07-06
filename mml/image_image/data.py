@@ -37,4 +37,7 @@ def make_data(rng, is_trainval, p_shuffle_u):
     x0, x1 = np.array(x0, dtype="float32"), np.array(x1, dtype="float32")
     x0 = x0.reshape((len(x0), -1))
     x1 = x1.reshape((len(x1), -1))
+    idxs = np.arange(len(y))
+    rng.shuffle(idxs)
+    x0, x1, y = x0[idxs], x1[idxs], y[idxs]
     return x0, x1, y
