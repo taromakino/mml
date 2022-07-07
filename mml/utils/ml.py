@@ -79,6 +79,22 @@ def posterior_kldiv(mu, logvar):
 def gaussian_nll(x, mu, logprec):
     return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
+def marginal_likelihood(y_batch, mu_batch, logvar_batch, n_samples, decoder):
+    result = []
+    for y_elem, mu_elem, logvar_elem in zip(y_batch, mu_batch, logvar_batch):
+        # Sample a batch z ~ q(z | x)
+        sd = torch.exp(logvar_elem / 2)
+        eps = torch.randn((n_samples, len(sd)))
+        z = mu_elem + eps * sd
+        # p(x | z)
+        log_reconst = torch.log(torch.sigmoid(decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))))).sum(dim=1)
+        prior = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
+        posterior = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd))
+        log_prior = prior.log_prob(z)
+        log_posterior = posterior.log_prob(z)
+        result.append(torch.exp(log_reconst + log_prior - log_posterior).mean().item())
+    return torch.tensor(result)
+
 def image_image_elbo(x0, x1, x0_reconst, x1_reconst, mu, logvar):
     x0_reconst_loss = F.binary_cross_entropy_with_logits(x0_reconst, x0, reduction="none").sum(dim=1)
     x1_reconst_loss = F.binary_cross_entropy_with_logits(x1_reconst, x1, reduction="none").sum(dim=1)
@@ -129,6 +145,19 @@ def eval_epoch_vae(eval_data, model, loss_fn):
             loss_epoch_kldiv.append(loss_batch_kldiv.mean().item())
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
+
+def eval_marginal_likelihood(eval_data, model, n_samples):
+    device = make_device()
+    model.eval()
+    result = []
+    with torch.no_grad():
+        for x0_batch, x1_batch, y_batch in eval_data:
+            x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
+            x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch)
+            marginal_likelihood_x0 = marginal_likelihood(y_batch, mu, logvar, n_samples, model.x0_decoder)
+            marginal_likelihood_x1 = marginal_likelihood(y_batch, mu, logvar, n_samples, model.x1_decoder)
+            result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
+    return np.mean(result)
 
 def train_eval_loop(data_train, data_val, model, optimizer, train_f, eval_f, dpath, n_epochs, n_early_stop_epochs):
     train_fpath = os.path.join(dpath, "train_summary.txt")
