@@ -53,5 +53,5 @@ class SemiSupervisedVae(nn.Module):
         mu, logvar = self.encode(x0, x1, y)
         z = self.sample_z(mu, logvar)
         x0_reconst = self.x0_decoder(torch.hstack((z, y)))
-        x1_reconst = self.x0_decoder(torch.hstack((z, y)))
+        x1_reconst = self.x1_decoder(torch.hstack((z, y)))
         return x0_reconst, x1_reconst, mu, logvar
