@@ -63,13 +63,13 @@ def main(args):
         args.n_early_stop_epochs)
 
     test_fpath = os.path.join(args.dpath, "test_summary.txt")
-    _, _, _, result = eval_marginal_likelihood(data_test_s, model_s, args.n_samples)
+    result = eval_marginal_likelihood(data_test_s, model_s, args.n_samples)
     write(test_fpath, f"model_s, data_test_s, marginal_likelihood={result:.3f}")
-    _, _, _, result = eval_marginal_likelihood(data_test_ns, model_s, args.n_samples)
+    result = eval_marginal_likelihood(data_test_ns, model_s, args.n_samples)
     write(test_fpath, f"model_s, data_test_ns, marginal_likelihood={result:.3f}")
-    _, _, _, result = eval_marginal_likelihood(data_test_s, model_ns, args.n_samples)
+    result = eval_marginal_likelihood(data_test_s, model_ns, args.n_samples)
     write(test_fpath, f"model_ns, data_test_s, marginal_likelihood={result:.3f}")
-    _, _, _, result = eval_marginal_likelihood(data_test_ns, model_ns, args.n_samples)
+    result = eval_marginal_likelihood(data_test_ns, model_ns, args.n_samples)
     write(test_fpath, f"model_ns, data_test_ns, marginal_likelihood={result:.3f}")
 
 if __name__ == "__main__":
