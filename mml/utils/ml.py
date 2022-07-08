@@ -79,20 +79,23 @@ def posterior_kldiv(mu, logvar):
 def gaussian_nll(x, mu, logprec):
     return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
-def marginal_likelihood(y_batch, mu_batch, logvar_batch, n_samples, decoder, device):
+def marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_samples, decoder, device):
     result = []
-    for y_elem, mu_elem, logvar_elem in zip(y_batch, mu_batch, logvar_batch):
+    for x_elem, y_elem, mu_elem, logvar_elem in zip(x_batch, y_batch, mu_batch, logvar_batch):
         # Sample a batch z ~ q(z | x)
         sd = torch.exp(logvar_elem / 2)
         eps = torch.randn((n_samples, len(sd))).to(device)
         z = mu_elem + eps * sd
         # p(x | z)
-        log_reconst = torch.log(torch.sigmoid(decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))))).sum(dim=1)
-        prior = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
-        posterior = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd))
-        log_prior = prior.log_prob(z)
-        log_posterior = posterior.log_prob(z)
-        result.append(torch.exp(log_reconst + log_prior - log_posterior).mean().item())
+        x_reconst = decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None])))
+        log_reconst = F.binary_cross_entropy_with_logits(x_reconst, x_elem[None].repeat((n_samples, 1)),
+            reduction="none").sum(dim=1)
+        prior_dist = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
+        posterior_dist = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd ** 2))
+        log_prior = prior_dist.log_prob(z)
+        log_posterior = posterior_dist.log_prob(z)
+        result.append(torch.logsumexp(torch.log(torch.tensor(1 / n_samples)) + log_reconst + log_prior - log_posterior,
+            dim=0))
     return torch.tensor(result)
 
 def image_image_elbo(x0, x1, x0_reconst, x1_reconst, mu, logvar):
@@ -154,8 +157,8 @@ def eval_marginal_likelihood(eval_data, model, n_samples):
         for x0_batch, x1_batch, y_batch in eval_data:
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
             x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch)
-            marginal_likelihood_x0 = marginal_likelihood(y_batch, mu, logvar, n_samples, model.x0_decoder, device)
-            marginal_likelihood_x1 = marginal_likelihood(y_batch, mu, logvar, n_samples, model.x1_decoder, device)
+            marginal_likelihood_x0 = marginal_likelihood(x0_batch, y_batch, mu, logvar, n_samples, model.x0_decoder, device)
+            marginal_likelihood_x1 = marginal_likelihood(x1_batch, y_batch, mu, logvar, n_samples, model.x1_decoder, device)
             result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
     return np.mean(result)
 
