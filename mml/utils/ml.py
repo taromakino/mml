@@ -79,7 +79,7 @@ def posterior_kldiv(mu, logvar):
 def gaussian_nll(x, mu, logprec):
     return 0.5 * torch.log(2 * torch.tensor(np.pi)) - 0.5 * logprec + 0.5 * torch.exp(logprec) * (x - mu) ** 2
 
-def marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_samples, decoder, device):
+def image_marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_samples, decoder, device):
     result = []
     for x_elem, y_elem, mu_elem, logvar_elem in zip(x_batch, y_batch, mu_batch, logvar_batch):
         # Sample a batch z ~ q(z | x)
@@ -90,6 +90,25 @@ def marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_samples, dec
         x_reconst = decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None])))
         log_reconst = F.binary_cross_entropy_with_logits(x_reconst, x_elem[None].repeat((n_samples, 1)),
             reduction="none").sum(dim=1)
+        prior_dist = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
+        posterior_dist = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd ** 2))
+        log_prior = prior_dist.log_prob(z)
+        log_posterior = posterior_dist.log_prob(z)
+        result.append(torch.logsumexp(torch.log(torch.tensor(1 / n_samples)) + log_reconst + log_prior - log_posterior,
+            dim=0))
+    return torch.tensor(result)
+
+def scalar_marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_samples, mu_decoder, logprec_decoder, device):
+    result = []
+    for x_elem, y_elem, mu_elem, logvar_elem in zip(x_batch, y_batch, mu_batch, logvar_batch):
+        # Sample a batch z ~ q(z | x)
+        sd = torch.exp(logvar_elem / 2)
+        eps = torch.randn((n_samples, len(sd))).to(device)
+        z = mu_elem + eps * sd
+        # p(x | z)
+        x_mu = mu_decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))).squeeze()
+        x_logprec = logprec_decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))).squeeze()
+        log_reconst = gaussian_nll(x_elem.repeat(n_samples), x_mu, x_logprec)
         prior_dist = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
         posterior_dist = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd ** 2))
         log_prior = prior_dist.log_prob(z)
@@ -149,16 +168,33 @@ def eval_epoch_vae(eval_data, model, loss_fn):
             loss_epoch.append(loss_batch.item())
     return np.mean(loss_epoch_x0), np.mean(loss_epoch_x1), np.mean(loss_epoch_kldiv), np.mean(loss_epoch)
 
-def eval_marginal_likelihood(eval_data, model, n_samples):
+def image_image_marginal_likelihood(eval_data, model, n_samples):
     device = make_device()
     model.eval()
     result = []
     with torch.no_grad():
         for x0_batch, x1_batch, y_batch in eval_data:
             x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-            x0_reconst, x1_reconst, mu, logvar = model(x0_batch, x1_batch, y_batch)
-            marginal_likelihood_x0 = marginal_likelihood(x0_batch, y_batch, mu, logvar, n_samples, model.x0_decoder, device)
-            marginal_likelihood_x1 = marginal_likelihood(x1_batch, y_batch, mu, logvar, n_samples, model.x1_decoder, device)
+            _, _, mu, logvar = model(x0_batch, x1_batch, y_batch)
+            marginal_likelihood_x0 = image_marginal_likelihood(x0_batch, y_batch, mu, logvar, n_samples,
+                model.x0_decoder, device)
+            marginal_likelihood_x1 = image_marginal_likelihood(x1_batch, y_batch, mu, logvar, n_samples,
+                model.x1_decoder, device)
+            result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
+    return np.mean(result)
+
+def image_scalar_marginal_likelihood(eval_data, model, n_samples):
+    device = make_device()
+    model.eval()
+    result = []
+    with torch.no_grad():
+        for x0_batch, x1_batch, y_batch in eval_data:
+            x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
+            _, _, _, mu, logvar = model(x0_batch, x1_batch, y_batch)
+            marginal_likelihood_x0 = image_marginal_likelihood(x0_batch, y_batch, mu, logvar, n_samples,
+                model.x0_decoder, device)
+            marginal_likelihood_x1 = scalar_marginal_likelihood(x1_batch, y_batch, mu, logvar, n_samples,
+                model.x1_decoder_mu, model.x1_decoder_logprec, device)
             result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
     return np.mean(result)
 

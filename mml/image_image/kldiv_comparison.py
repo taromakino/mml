@@ -10,17 +10,20 @@ def main(args):
     rng = np.random.RandomState(args.seed)
     device = make_device()
 
+    # Make numpy data
     x0_trainval_s, x1_trainval_s, y_trainval_s = make_data(rng, True, 0)
     x0_test_s, x1_test_s, y_test_s = make_data(rng, False, 0)
 
     x0_trainval_ns, x1_trainval_ns, y_trainval_ns = make_data(rng, True, args.p_shuffle_u)
     x0_test_ns, x1_test_ns, y_test_ns = make_data(rng, False, args.p_shuffle_u)
 
+    # Split train/val/test
     (x0_train_s, x1_train_s, y_train_s), (x0_val_s, x1_val_s, y_val_s) = \
         split_data(args.trainval_ratios, x0_trainval_s, x1_trainval_s, y_trainval_s)
     (x0_train_ns, x1_train_ns, y_train_ns), (x0_val_ns, x1_val_ns, y_val_ns) = \
         split_data(args.trainval_ratios, x0_trainval_ns, x1_trainval_ns, y_trainval_ns)
 
+    # To torch
     x0_train_s, x1_train_s = torch.tensor(x0_train_s), torch.tensor(x1_train_s)
     x0_val_s, x1_val_s = torch.tensor(x0_val_s), torch.tensor(x1_val_s)
     x0_test_s, x1_test_s = torch.tensor(x0_test_s), torch.tensor(x1_test_s)
@@ -33,11 +36,12 @@ def main(args):
     y_train_ns, y_val_ns, y_test_ns = torch.tensor(y_train_ns)[:, None], torch.tensor(y_val_ns)[:,None], \
         torch.tensor(y_test_ns)[:, None]
 
+    # Run experiment
     data_train_s = make_dataloader((x0_train_s, x1_train_s, y_train_s), args.batch_size, True)
     data_val_s = make_dataloader((x0_val_s, x1_val_s, y_val_s), args.batch_size, False)
 
     data_train_ns = make_dataloader((x0_train_ns, x1_train_ns, y_train_ns), args.batch_size, True)
-    data_val_union = make_dataloader((x0_val_ns, x1_val_ns, y_val_ns), args.batch_size, False)
+    data_val_ns = make_dataloader((x0_val_ns, x1_val_ns, y_val_ns), args.batch_size, False)
 
     data_test_s = make_dataloader((x0_test_s, x1_test_s, y_test_s), args.batch_size, False)
     data_test_ns = make_dataloader((x0_test_ns, x1_test_ns, y_test_ns), args.batch_size, False)
@@ -59,17 +63,17 @@ def main(args):
 
     train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
         args.n_early_stop_epochs)
-    train_eval_loop(data_train_ns, data_val_union, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
+    train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
         args.n_early_stop_epochs)
 
     test_fpath = os.path.join(args.dpath, "test_summary.txt")
-    result = eval_marginal_likelihood(data_test_s, model_s, args.n_samples)
+    result = image_image_marginal_likelihood(data_test_s, model_s, args.n_samples)
     write(test_fpath, f"model_s, data_test_s, marginal_likelihood={result:.3f}")
-    result = eval_marginal_likelihood(data_test_ns, model_s, args.n_samples)
+    result = image_image_marginal_likelihood(data_test_ns, model_s, args.n_samples)
     write(test_fpath, f"model_s, data_test_ns, marginal_likelihood={result:.3f}")
-    result = eval_marginal_likelihood(data_test_s, model_ns, args.n_samples)
+    result = image_image_marginal_likelihood(data_test_s, model_ns, args.n_samples)
     write(test_fpath, f"model_ns, data_test_s, marginal_likelihood={result:.3f}")
-    result = eval_marginal_likelihood(data_test_ns, model_ns, args.n_samples)
+    result = image_image_marginal_likelihood(data_test_ns, model_ns, args.n_samples)
     write(test_fpath, f"model_ns, data_test_ns, marginal_likelihood={result:.3f}")
 
 if __name__ == "__main__":
