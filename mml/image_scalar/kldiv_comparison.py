@@ -13,10 +13,10 @@ def main(args):
     # Make numpy data
     x0_trainval_s, x1_trainval_s, y_trainval_s = make_data(args.dataset_name, rng, True, 0, args.sigma)
     x0_trainval_ns, x1_trainval_ns, y_trainval_ns = make_data(args.dataset_name, rng, True,
-        args.p_shuffle_color, args.sigma)
+        args.p_shuffle_u, args.sigma)
 
     x0_test_s, x1_test_s, y_test_s = make_data(args.dataset_name, rng, False, 0, args.sigma)
-    x0_test_ns, x1_test_ns, y_test_ns = make_data(args.dataset_name, rng, False, args.p_shuffle_color, args.sigma)
+    x0_test_ns, x1_test_ns, y_test_ns = make_data(args.dataset_name, rng, False, args.p_shuffle_u, args.sigma)
 
     # Split train/val/test
     (x0_train_s, x1_train_s, y_train_s), (x0_val_s, x1_val_s, y_val_s) = \
@@ -77,10 +77,10 @@ def main(args):
     os.makedirs(dpath_s, exist_ok=True)
     os.makedirs(dpath_ns, exist_ok=True)
 
-    # train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
-    #     args.n_early_stop_epochs)
-    # train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
-    #     args.n_early_stop_epochs)
+    train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
+        args.n_early_stop_epochs)
+    train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
+        args.n_early_stop_epochs)
 
     test_fpath = os.path.join(args.dpath, "test_summary.txt")
     result = image_scalar_marginal_likelihood(data_test_s, model_s, args.n_samples)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument("--dpath", type=str, default="results")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--dataset-name", type=str, default="MNIST")
-    parser.add_argument("--p-shuffle-color", type=float, default=0.5)
+    parser.add_argument("--p-shuffle-u", type=float, default=1)
     parser.add_argument("--sigma", type=float, default=1)
     parser.add_argument("--trainval-ratios", nargs="+", type=float, default=[0.8, 0.2])
     parser.add_argument("--lr", type=float, default=1e-4)
