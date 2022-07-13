@@ -88,7 +88,7 @@ def image_marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_sample
         z = mu_elem + eps * sd
         # p(x | z)
         x_reconst = decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None])))
-        log_reconst = F.binary_cross_entropy_with_logits(x_reconst, x_elem[None].repeat((n_samples, 1)),
+        log_reconst = -F.binary_cross_entropy_with_logits(x_reconst, x_elem[None].repeat((n_samples, 1)),
             reduction="none").sum(dim=1)
         prior_dist = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
         posterior_dist = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd ** 2))
@@ -108,7 +108,7 @@ def scalar_marginal_likelihood(x_batch, y_batch, mu_batch, logvar_batch, n_sampl
         # p(x | z)
         x_mu = mu_decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))).squeeze()
         x_logprec = logprec_decoder(torch.hstack((z, y_elem.repeat(n_samples)[:, None]))).squeeze()
-        log_reconst = gaussian_nll(x_elem.repeat(n_samples), x_mu, x_logprec)
+        log_reconst = -gaussian_nll(x_elem.repeat(n_samples), x_mu, x_logprec)
         prior_dist = torch.distributions.MultivariateNormal(torch.zeros_like(mu_elem), torch.diag(torch.ones_like(sd)))
         posterior_dist = torch.distributions.MultivariateNormal(mu_elem, torch.diag(sd ** 2))
         log_prior = prior_dist.log_prob(z)
