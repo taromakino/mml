@@ -3,7 +3,7 @@ from utils.const import *
 from utils.plotting import *
 from scipy.special import softmax
 from scipy.stats import entropy, multivariate_normal as mvn
-from data import make_data
+from scalar_scalar.data import make_data
 
 def posterior_entropy(x_test, y_test, uy_prior_train, sigma):
     u_posterior = []

@@ -26,10 +26,8 @@ def main(args):
     x_ns, y_ns = make_data(rng, n_examples, uy_prior_ns, sigma)
 
     # Split train/val/test
-    (x_train_s, y_train_s), (x_val_s, y_val_s), (x_test_s, y_test_s) = \
-        split_data(trainval_ratios, x_s, y_s)
-    (x_train_ns, y_train_ns), (x_val_ns, y_val_ns), (x_test_ns, y_test_ns) = \
-        split_data(trainval_ratios, x_ns, y_ns)
+    (x_train_s, y_train_s), (x_val_s, y_val_s), (x_test_s, y_test_s) = split_data(trainval_ratios, x_s, y_s)
+    (x_train_ns, y_train_ns), (x_val_ns, y_val_ns), (x_test_ns, y_test_ns) = split_data(trainval_ratios, x_ns, y_ns)
 
     # Normalize
     x_mean_s, x_sd_s = x_train_s.mean(0), x_train_s.std(0)
@@ -99,7 +97,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dpath", type=str, default="results")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--n-epochs", type=int, default=200)
     parser.add_argument("--n-early-stop-epochs", type=int, default=20)
     parser.add_argument("--n-anneal-epochs", type=int, default=10)
