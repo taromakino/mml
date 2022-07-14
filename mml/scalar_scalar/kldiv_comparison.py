@@ -80,10 +80,10 @@ def main(args):
     os.makedirs(dpath_s, exist_ok=True)
     os.makedirs(dpath_ns, exist_ok=True)
 
-    # train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
-    #     args.n_early_stop_epochs)
-    # train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
-    #     args.n_early_stop_epochs)
+    train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
+        args.n_early_stop_epochs)
+    train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
+        args.n_early_stop_epochs)
 
     test_fpath = os.path.join(args.dpath, "test_summary.txt")
     result = scalar_scalar_marginal_likelihood(data_test_s, model_s, args.n_samples)
