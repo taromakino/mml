@@ -2,25 +2,39 @@ import torch
 import torch.nn as nn
 from utils.ml import swish
 
-class Encoder(nn.Module):
+class ScalarEncoder(nn.Module):
     def __init__(self, hidden_dim, latent_dim):
-        super(Encoder, self).__init__()
+        super(ScalarEncoder, self).__init__()
         self.fc1 = nn.Linear(3, hidden_dim)
-        self.fc21 = nn.Linear(hidden_dim, latent_dim)
-        self.fc22 = nn.Linear(hidden_dim, latent_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc31 = nn.Linear(hidden_dim, latent_dim)
+        self.fc32 = nn.Linear(hidden_dim, latent_dim)
 
     def forward(self, x):
         h = swish(self.fc1(x))
-        return self.fc21(h), self.fc22(h)
+        h = swish(self.fc2(h))
+        return self.fc31(h), self.fc32(h)
+
+class ScalarDecoder(nn.Module):
+    def __init__(self, hidden_dim, latent_dim):
+        super(ScalarDecoder, self).__init__()
+        self.fc1 = nn.Linear(latent_dim + 1, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        h = swish(self.fc1(x))
+        h = swish(self.fc2(h))
+        return self.fc3(h)
 
 class SemiSupervisedVae(nn.Module):
     def __init__(self, hidden_dim, latent_dim):
         super(SemiSupervisedVae, self).__init__()
-        self.encoder = Encoder(hidden_dim, latent_dim)
-        self.x0_decoder_mu = nn.Linear(latent_dim + 1, 1)
-        self.x0_decoder_logprec = nn.Linear(latent_dim + 1, 1)
-        self.x1_decoder_mu = nn.Linear(latent_dim + 1, 1)
-        self.x1_decoder_logprec = nn.Linear(latent_dim + 1, 1)
+        self.encoder = ScalarEncoder(hidden_dim, latent_dim)
+        self.x0_decoder_mu = ScalarDecoder(hidden_dim, latent_dim)
+        self.x0_decoder_logprec = ScalarDecoder(hidden_dim, latent_dim)
+        self.x1_decoder_mu = ScalarDecoder(hidden_dim, latent_dim)
+        self.x1_decoder_logprec = ScalarDecoder(hidden_dim, latent_dim)
 
     def encode(self, x0, x1, y):
         return self.encoder(torch.hstack((x0, x1, y)))
