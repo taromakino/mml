@@ -49,9 +49,6 @@ def main(args):
     y_train_ns, y_val_ns, y_test_ns = torch.tensor(y_train_ns)[:, None], torch.tensor(y_val_ns)[:,None], \
         torch.tensor(y_test_ns)[:, None]
 
-    model_s = SemiSupervisedVae(x0_train_s.shape[1], args.hidden_dim, args.latent_dim)
-    model_ns = SemiSupervisedVae(x0_train_s.shape[1], args.hidden_dim, args.latent_dim)
-
     # Run experiment
     data_train_s = make_dataloader((x0_train_s, x1_train_s, y_train_s), args.batch_size, True)
     data_val_s = make_dataloader((x0_val_s, x1_val_s, y_val_s), args.batch_size, False)
@@ -107,5 +104,5 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--hidden-dim", type=int, default=512)
     parser.add_argument("--latent-dim", type=int, default=256)
-    parser.add_argument("--n-samples", type=int, default=100)
+    parser.add_argument("--n-samples", type=int, default=1000)
     main(parser.parse_args())

@@ -198,6 +198,21 @@ def image_scalar_marginal_likelihood(eval_data, model, n_samples):
             result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
     return np.mean(result)
 
+def scalar_scalar_marginal_likelihood(eval_data, model, n_samples):
+    device = make_device()
+    model.eval()
+    result = []
+    with torch.no_grad():
+        for x0_batch, x1_batch, y_batch in eval_data:
+            x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
+            _, _, _, _, mu, logvar = model(x0_batch, x1_batch, y_batch)
+            marginal_likelihood_x0 = scalar_marginal_likelihood(x0_batch, y_batch, mu, logvar, n_samples,
+                model.x0_decoder_mu, model.x0_decoder_logprec, device)
+            marginal_likelihood_x1 = scalar_marginal_likelihood(x1_batch, y_batch, mu, logvar, n_samples,
+                model.x1_decoder_mu, model.x1_decoder_logprec, device)
+            result.append((marginal_likelihood_x0 + marginal_likelihood_x1).mean().item())
+    return np.mean(result)
+
 def train_eval_loop(data_train, data_val, model, optimizer, train_f, eval_f, dpath, n_epochs, n_early_stop_epochs):
     train_fpath = os.path.join(dpath, "train_summary.txt")
     val_fpath = os.path.join(dpath, "val_summary.txt")

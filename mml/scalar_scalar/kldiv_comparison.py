@@ -13,113 +13,87 @@ def main(args):
     n_examples = 10000
     trainval_ratios = [0.8, 0.1]
 
-    uy_prior_det = np.array([
+    uy_prior_s = np.array([
         [0.5, 0],
         [0, 0.5]])
-    uy_prior_nondet = np.array([
+    uy_prior_ns = np.array([
         [0.25, 0.25],
         [0.25, 0.25]])
     sigma = 0.9
 
     # Make numpy data
-    x_det, y_det = make_data(rng, n_examples, uy_prior_det, sigma)
-    x_nondet, y_nondet = make_data(rng, n_examples, uy_prior_nondet, sigma)
+    x_s, y_s = make_data(rng, n_examples, uy_prior_s, sigma)
+    x_ns, y_ns = make_data(rng, n_examples, uy_prior_ns, sigma)
 
     # Split train/val/test
-    (x_train_det, y_train_det), (x_val_det, y_val_det), (x_test_det, y_test_det) = \
-        split_data(trainval_ratios, x_det, y_det)
-    (x_train_nondet, y_train_nondet), (x_val_nondet, y_val_nondet), (x_test_nondet, y_test_nondet) = \
-        split_data(trainval_ratios, x_nondet, y_nondet)
+    (x_train_s, y_train_s), (x_val_s, y_val_s), (x_test_s, y_test_s) = \
+        split_data(trainval_ratios, x_s, y_s)
+    (x_train_ns, y_train_ns), (x_val_ns, y_val_ns), (x_test_ns, y_test_ns) = \
+        split_data(trainval_ratios, x_ns, y_ns)
 
     # Normalize
-    x_mean_det, x_sd_det = x_train_det.mean(0), x_train_det.std(0)
-    x_mean_nondet, x_sd_nondet = x_train_nondet.mean(0), x_train_nondet.std(0)
+    x_mean_s, x_sd_s = x_train_s.mean(0), x_train_s.std(0)
+    x_mean_ns, x_sd_ns = x_train_ns.mean(0), x_train_ns.std(0)
 
-    x_train_det = (x_train_det - x_mean_det) / x_sd_det
-    x_val_det = (x_val_det - x_mean_det) / x_sd_det
-    x_test_det = (x_test_det - x_mean_det) / x_sd_det
+    x_train_s = (x_train_s - x_mean_s) / x_sd_s
+    x_val_s = (x_val_s - x_mean_s) / x_sd_s
+    x_test_s = (x_test_s - x_mean_s) / x_sd_s
 
-    x_train_nondet = (x_train_nondet - x_mean_nondet) / x_sd_nondet
-    x_val_nondet = (x_val_nondet - x_mean_nondet) / x_sd_nondet
-    x_test_nondet = (x_test_nondet - x_mean_nondet) / x_sd_nondet
+    x_train_ns = (x_train_ns - x_mean_ns) / x_sd_ns
+    x_val_ns = (x_val_ns - x_mean_ns) / x_sd_ns
+    x_test_ns = (x_test_ns - x_mean_ns) / x_sd_ns
 
     # To torch
 
-    x0_train_det, x1_train_det = to_1d_torch(x_train_det[:, 0], x_train_det[:, 1])
-    x0_val_det, x1_val_det = to_1d_torch(x_val_det[:, 0], x_val_det[:, 1])
-    x0_test_det, x1_test_det = to_1d_torch(x_test_det[:, 0], x_test_det[:, 1])
-    y_train_det, y_val_det, y_test_det = to_1d_torch(y_train_det, y_val_det, y_test_det)
+    x0_train_s, x1_train_s = to_1d_torch(x_train_s[:, 0], x_train_s[:, 1])
+    x0_val_s, x1_val_s = to_1d_torch(x_val_s[:, 0], x_val_s[:, 1])
+    x0_test_s, x1_test_s = to_1d_torch(x_test_s[:, 0], x_test_s[:, 1])
+    y_train_s, y_val_s, y_test_s = to_1d_torch(y_train_s, y_val_s, y_test_s)
 
-    x0_train_nondet, x1_train_nondet = to_1d_torch(x_train_nondet[:, 0], x_train_nondet[:, 1])
-    x0_val_nondet, x1_val_nondet = to_1d_torch(x_val_nondet[:, 0], x_val_nondet[:, 1])
-    x0_test_nondet, x1_test_nondet = to_1d_torch(x_test_nondet[:, 0], x_test_nondet[:, 1])
-    y_train_nondet, y_val_nondet, y_test_nondet = to_1d_torch(y_train_nondet, y_val_nondet, y_test_nondet)
-
-    # Make union
-    x0_train_union, x1_train_union, y_train_union = \
-        torch.vstack((x0_train_det, x0_train_nondet)), \
-        torch.vstack((x1_train_det, x1_train_nondet)), \
-        torch.vstack((y_train_det, y_train_nondet))
-    x0_val_union, x1_val_union, y_val_union = \
-        torch.vstack((x0_val_det, x0_val_nondet)), \
-        torch.vstack((x1_val_det, x1_val_nondet)), \
-        torch.vstack((y_val_det, y_val_nondet))
-
-    train_subset_idxs = rng.choice(np.arange(len(x0_train_union)), len(x0_train_det), replace=False)
-    val_subset_idxs = rng.choice(np.arange(len(x0_val_union)), len(x0_val_det), replace=False)
-
-    x0_train_union, x1_train_union, y_train_union = x0_train_union[train_subset_idxs], x1_train_union[
-        train_subset_idxs], y_train_union[train_subset_idxs]
-    x0_val_union, x1_val_union, y_val_union = x0_val_union[val_subset_idxs], x1_val_union[val_subset_idxs], \
-        y_val_union[val_subset_idxs]
+    x0_train_ns, x1_train_ns = to_1d_torch(x_train_ns[:, 0], x_train_ns[:, 1])
+    x0_val_ns, x1_val_ns = to_1d_torch(x_val_ns[:, 0], x_val_ns[:, 1])
+    x0_test_ns, x1_test_ns = to_1d_torch(x_test_ns[:, 0], x_test_ns[:, 1])
+    y_train_ns, y_val_ns, y_test_ns = to_1d_torch(y_train_ns, y_val_ns, y_test_ns)
 
     # Run experiment
-    data_train_det = make_dataloader((x0_train_det, x1_train_det, y_train_det), args.batch_size, True)
-    data_val_det = make_dataloader((x0_val_det, x1_val_det, y_val_det), args.batch_size, False)
+    data_train_s = make_dataloader((x0_train_s, x1_train_s, y_train_s), args.batch_size, True)
+    data_val_s = make_dataloader((x0_val_s, x1_val_s, y_val_s), args.batch_size, False)
 
-    data_train_union = make_dataloader((x0_train_union, x1_train_union, y_train_union), args.batch_size, True)
-    data_val_union = make_dataloader((x0_val_union, x1_val_union, y_val_union), args.batch_size, False)
+    data_train_ns = make_dataloader((x0_train_ns, x1_train_ns, y_train_ns), args.batch_size, True)
+    data_val_ns = make_dataloader((x0_val_ns, x1_val_ns, y_val_ns), args.batch_size, False)
 
-    data_test_det = make_dataloader((x0_test_det, x1_test_det, y_test_det), args.batch_size, False)
-    data_test_nondet = make_dataloader((x0_test_nondet, x1_test_nondet, y_test_nondet), args.batch_size, False)
+    data_test_s = make_dataloader((x0_test_s, x1_test_s, y_test_s), args.batch_size, False)
+    data_test_ns = make_dataloader((x0_test_ns, x1_test_ns, y_test_ns), args.batch_size, False)
 
     train_f = partial(train_epoch_vae, loss_fn=scalar_scalar_elbo, n_anneal_epochs=args.n_anneal_epochs)
     eval_f = partial(eval_epoch_vae, loss_fn=scalar_scalar_elbo)
 
-    model_det = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
-    model_union = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
-    model_det.to(device)
-    model_union.to(device)
-    optimizer_det = Adam(model_det.parameters(), lr=args.lr)
-    optimizer_union = Adam(model_union.parameters(), lr=args.lr)
+    model_s = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
+    model_ns = SemiSupervisedVae(args.hidden_dim, args.latent_dim)
+    model_s.to(device)
+    model_ns.to(device)
+    optimizer_s = Adam(model_s.parameters(), lr=args.lr)
+    optimizer_ns = Adam(model_ns.parameters(), lr=args.lr)
 
-    dpath_spurious = os.path.join(args.dpath, "spurious")
-    dpath_union = os.path.join(args.dpath, "union")
-    os.makedirs(dpath_spurious, exist_ok=True)
-    os.makedirs(dpath_union, exist_ok=True)
+    dpath_s = os.path.join(args.dpath, "spurious")
+    dpath_ns = os.path.join(args.dpath, "nonspurious")
+    os.makedirs(dpath_s, exist_ok=True)
+    os.makedirs(dpath_ns, exist_ok=True)
 
-    train_eval_loop(data_train_det, data_val_det, model_det, optimizer_det, train_f, eval_f, dpath_spurious,
-        args.n_epochs, args.n_early_stop_epochs)
-    train_eval_loop(data_train_union, data_val_union, model_union, optimizer_union, train_f, eval_f, dpath_union,
-        args.n_epochs, args.n_early_stop_epochs)
+    # train_eval_loop(data_train_s, data_val_s, model_s, optimizer_s, train_f, eval_f, dpath_s, args.n_epochs,
+    #     args.n_early_stop_epochs)
+    # train_eval_loop(data_train_ns, data_val_ns, model_ns, optimizer_ns, train_f, eval_f, dpath_ns, args.n_epochs,
+    #     args.n_early_stop_epochs)
 
     test_fpath = os.path.join(args.dpath, "test_summary.txt")
-    model_det.eval()
-    model_union.eval()
-    kldivs_det, kldivs_union = [], []
-    for x0_batch, x1_batch, y_batch in data_test_det:
-        x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).detach().cpu().numpy())
-        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).detach().cpu().numpy())
-    kldivs_det, kldivs_union = np.array(kldivs_det), np.array(kldivs_union)
-    write(test_fpath, f"data_test_det, model_det={np.mean(kldivs_det):.3f}, model_union={np.mean(kldivs_union):.3f}")
-    kldivs_det, kldivs_union = [], []
-    for x0_batch, x1_batch, y_batch in data_test_nondet:
-        x0_batch, x1_batch, y_batch = x0_batch.to(device), x1_batch.to(device), y_batch.to(device)
-        kldivs_det.append(posterior_kldiv(*model_det.encode(x0_batch, x1_batch, y_batch)).detach().cpu().numpy())
-        kldivs_union.append(posterior_kldiv(*model_union.encode(x0_batch, x1_batch, y_batch)).detach().cpu().numpy())
-    kldivs_det, kldivs_union = np.array(kldivs_det), np.array(kldivs_union)
-    write(test_fpath, f"data_test_nondet, model_det={np.mean(kldivs_det):.3f}, model_union={np.mean(kldivs_union):.3f}")
+    result = scalar_scalar_marginal_likelihood(data_test_s, model_s, args.n_samples)
+    write(test_fpath, f"model_s, data_test_s, marginal_likelihood={result:.3f}")
+    result = scalar_scalar_marginal_likelihood(data_test_ns, model_s, args.n_samples)
+    write(test_fpath, f"model_s, data_test_ns, marginal_likelihood={result:.3f}")
+    result = scalar_scalar_marginal_likelihood(data_test_s, model_ns, args.n_samples)
+    write(test_fpath, f"model_ns, data_test_s, marginal_likelihood={result:.3f}")
+    result = scalar_scalar_marginal_likelihood(data_test_ns, model_ns, args.n_samples)
+    write(test_fpath, f"model_ns, data_test_ns, marginal_likelihood={result:.3f}")
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -132,4 +106,5 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--hidden-dim", type=int, default=256)
     parser.add_argument("--latent-dim", type=int, default=256)
+    parser.add_argument("--n-samples", type=int, default=1000)
     main(parser.parse_args())
