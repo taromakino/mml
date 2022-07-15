@@ -10,9 +10,6 @@ def main(args):
     rng = np.random.RandomState(args.seed)
     device = make_device()
 
-    n_examples = 10000
-    trainval_ratios = [0.8, 0.1]
-
     uy_prior_s = np.array([
         [0.5, 0],
         [0, 0.5]])
@@ -22,12 +19,12 @@ def main(args):
     sigma = 0.9
 
     # Make numpy data
-    x_s, y_s = make_data(rng, n_examples, uy_prior_s, sigma)
-    x_ns, y_ns = make_data(rng, n_examples, uy_prior_ns, sigma)
+    x_s, y_s = make_data(rng, args.n_examples, uy_prior_s, sigma)
+    x_ns, y_ns = make_data(rng, args.n_examples, uy_prior_ns, sigma)
 
     # Split train/val/test
-    (x_train_s, y_train_s), (x_val_s, y_val_s), (x_test_s, y_test_s) = split_data(trainval_ratios, x_s, y_s)
-    (x_train_ns, y_train_ns), (x_val_ns, y_val_ns), (x_test_ns, y_test_ns) = split_data(trainval_ratios, x_ns, y_ns)
+    (x_train_s, y_train_s), (x_val_s, y_val_s), (x_test_s, y_test_s) = split_data(args.trainval_ratios, x_s, y_s)
+    (x_train_ns, y_train_ns), (x_val_ns, y_val_ns), (x_test_ns, y_test_ns) = split_data(args.trainval_ratios, x_ns, y_ns)
 
     # Normalize
     x_mean_s, x_sd_s = x_train_s.mean(0), x_train_s.std(0)
@@ -97,6 +94,8 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dpath", type=str, default="results")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--n-examples", type=int, default=100000)
+    parser.add_argument("--trainval-ratios", nargs="+", type=float, default=[0.8, 0.1])
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--n-epochs", type=int, default=200)
     parser.add_argument("--n-early-stop-epochs", type=int, default=20)
